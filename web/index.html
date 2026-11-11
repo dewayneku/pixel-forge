@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pixel Forge</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header id="top">
+    <div class="brand">Pixel Forge</div>
+    <div class="group">
+      <button id="btn-new" title="New sprite">New</button>
+      <button id="btn-open" title="Open project file">Open</button>
+      <button id="btn-save" title="Save project file">Save</button>
+      <button id="btn-import" title="Import an image or sprite sheet (or drop one on the canvas)">Import</button>
+      <input type="file" id="file-open" accept=".json,application/json" hidden>
+      <input type="file" id="file-import" accept="image/png,image/gif,image/jpeg,image/webp,image/bmp" hidden>
+    </div>
+    <div class="group">
+      <button id="btn-undo" title="Undo (Ctrl+Z)">Undo</button>
+      <button id="btn-redo" title="Redo (Ctrl+Y)">Redo</button>
+    </div>
+    <div class="group">
+      <span class="label">Export</span>
+      <select id="export-scale" title="Export scale">
+        <option value="1">1×</option><option value="2">2×</option><option value="4" selected>4×</option><option value="8">8×</option>
+      </select>
+      <button id="btn-export-frame">Frame PNG</button>
+      <button id="btn-export-sheet">Sprite sheet</button>
+      <button id="btn-export-gif" title="Animated GIF of all frames, looping, with each frame's timing">GIF</button>
+    </div>
+    <div class="spacer"></div>
+    <div id="presence" class="pill offline"><span class="dot"></span><span id="presence-text">Connecting…</span></div>
+  </header>
+
+  <main>
+    <aside id="toolbar">
+      <div class="tools">
+        <button data-tool="pencil" title="Pencil (B)">✎</button>
+        <button data-tool="eraser" title="Eraser (E)">⌫</button>
+        <button data-tool="fill" title="Fill (G) — Shift: replace color everywhere">▧</button>
+        <button data-tool="picker" title="Eyedropper (I) — or Alt+click">⦿</button>
+        <button data-tool="line" title="Line (L)">╱</button>
+        <button data-tool="rect" title="Rectangle (U)">▭</button>
+        <button data-tool="ellipse" title="Ellipse (O)">◯</button>
+        <button data-tool="pan" title="Pan (H) — or hold Space / middle mouse">✋</button>
+      </div>
+      <label class="field" title="Brush size ([ and ])">Size <input id="brush" type="number" min="1" max="16" value="1"></label>
+      <label class="field check" title="Fill rectangles and ellipses"><input id="fill-shapes" type="checkbox"> Fill shapes</label>
+      <div class="color-block">
+        <input id="color" type="color" value="#000000" title="Current color">
+        <label class="field" title="Alpha">α <input id="alpha" type="range" min="0" max="255" value="255"></label>
+        <div id="color-hex" class="mono">#000000</div>
+      </div>
+      <div class="section-title">Palette <span class="actions"><button id="pal-reduce" class="mini" title="Clean up the sprite's colors: reduce to a small palette or snap to this one">Reduce…</button><button id="pal-add" class="mini" title="Add current color">+</button></span></div>
+      <div id="palette" title="Click to use · right-click to remove"></div>
+    </aside>
+
+    <section id="stage">
+      <canvas id="view"></canvas>
+      <div id="status" class="mono"></div>
+      <div id="toasts"></div>
+    </section>
+
+    <aside id="side">
+      <div class="panel">
+        <div class="section-title">Preview <span id="fps-label" class="muted"></span></div>
+        <div id="preview-box"><canvas id="preview"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="section-title">Layers
+          <span class="actions">
+            <button id="layer-add" class="mini" title="New layer">+</button>
+            <button id="layer-dup" class="mini" title="Duplicate layer">⧉</button>
+            <button id="layer-up" class="mini" title="Move up">↑</button>
+            <button id="layer-down" class="mini" title="Move down">↓</button>
+            <button id="layer-del" class="mini" title="Delete layer">✕</button>
+          </span>
+        </div>
+        <div id="layers"></div>
+        <label class="field">Opacity <input id="layer-opacity" type="range" min="0" max="100" value="100"></label>
+      </div>
+      <div class="panel grow">
+        <div class="section-title">Activity</div>
+        <div id="activity"></div>
+      </div>
+    </aside>
+  </main>
+
+  <footer id="timeline">
+    <div class="tl-controls">
+      <button id="play" title="Play / pause (Enter)">▶</button>
+      <button id="frame-add" title="New frame">+ Frame</button>
+      <button id="frame-dup" title="Duplicate frame">Duplicate</button>
+      <button id="frame-left" title="Move frame left">←</button>
+      <button id="frame-right" title="Move frame right">→</button>
+      <button id="frame-del" title="Delete frame">Delete</button>
+      <label class="field">ms <input id="frame-duration" type="number" min="10" max="60000" step="10" value="100"></label>
+      <label class="field check"><input id="onion" type="checkbox" checked> Onion skin</label>
+      <label class="field check"><input id="grid" type="checkbox" checked> Grid</label>
+    </div>
+    <div id="frames"></div>
+  </footer>
+
+  <dialog id="import-dialog">
+    <form method="dialog" class="import-form">
+      <div class="dialog-head">
+        <h3>Import image</h3>
+        <span id="import-info" class="muted"></span>
+        <label class="field zoom">Zoom
+          <select id="import-zoom"><option value="fit">Fit</option><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option><option value="4">4×</option></select>
+        </label>
+      </div>
+      <div class="import-preview-box" id="import-preview-box"><canvas id="import-preview"></canvas></div>
+      <div id="import-count" class="mono"></div>
+
+      <div class="opt-group">
+        <div class="row">
+          <label class="field check"><input id="import-bg" type="checkbox"> Remove background</label>
+          <input id="import-bg-color" type="color" title="Background color (detected from the image border)">
+          <label class="field grow" title="How different a color can be and still count as background. Raise it for JPEG noise.">Tolerance <input id="import-bg-tol" type="range" min="0" max="160" value="40"><span id="import-bg-tol-val" class="mono">40</span></label>
+        </div>
+        <label class="field check" title="Only remove background that touches the image edge, so white eyes and highlights inside sprites stay"><input id="import-bg-edges" type="checkbox" checked> Keep matching colors inside sprites</label>
+      </div>
+
+      <div class="opt-group">
+        <div class="row">
+          <label class="field">Cut into
+            <select id="import-cut"><option value="grid">Even grid</option><option value="detect">Separate sprites (auto-detect)</option></select>
+          </label>
+        </div>
+        <div class="row" id="grid-opts">
+          <label class="field">Frame <input id="import-fw" type="number" min="1"> × <input id="import-fh" type="number" min="1"></label>
+          <button type="button" id="import-whole" class="mini" title="Use the whole image as one frame">Whole image</button>
+          <label class="field">Spacing <input id="import-spacing" type="number" min="0" value="0"></label>
+          <label class="field">Margin <input id="import-margin" type="number" min="0" value="0"></label>
+          <label class="field check"><input id="import-skip" type="checkbox" checked> Skip empty cells</label>
+        </div>
+        <div class="row" id="detect-opts">
+          <label class="field" title="Join parts that are this many pixels apart (for detached swords, effects, hair)">Join gap <input id="import-gap" type="number" min="0" value="0"></label>
+          <label class="field" title="Ignore specks smaller than this many pixels">Min size <input id="import-min" type="number" min="1" value="12"></label>
+          <label class="field">Align
+            <select id="import-align"><option value="bottom">Feet (bottom)</option><option value="center">Center</option><option value="top-left">Top-left</option></select>
+          </label>
+          <button type="button" id="import-clear-sel" class="mini">Clear selection</button>
+        </div>
+      </div>
+
+      <div class="opt-group">
+        <div class="row">
+          <label class="field check" title="Pull JPEG noise and blurry shades back to a small, clean palette"><input id="import-clean" type="checkbox"> Clean up colors</label>
+          <label class="field">Colors <input id="import-colors" type="number" min="2" max="256" value="24"></label>
+          <label class="field check"><input id="import-snap" type="checkbox"> Use the current palette instead</label>
+          <label class="field check" title="Remove single pixels that touch nothing"><input id="import-despeckle" type="checkbox" checked> Remove stray pixels</label>
+        </div>
+        <div id="import-pal" class="pal-strip"></div>
+      </div>
+
+      <div class="row">
+        <label class="field">Import as
+          <select id="import-mode">
+            <option value="new">New sprite (replaces current; undo restores it)</option>
+            <option value="frames">New frames after the current frame</option>
+            <option value="layer">New layer, starting at the current frame</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label class="field">ms per frame <input id="import-duration" type="number" min="10" step="10" value="100"></label>
+        <label class="field check"><input id="import-palette" type="checkbox"> Use the image's colors as the palette</label>
+      </div>
+      <div class="dialog-buttons">
+        <button value="cancel" formnovalidate>Cancel</button>
+        <button id="import-go" value="ok" class="active">Import</button>
+      </div>
+    </form>
+  </dialog>
+  <div id="drop-hint">Drop an image to import it</div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
