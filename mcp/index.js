@@ -343,6 +343,27 @@ tool('reduce_colors', 'Clean up colors already in the sprite: reduce them to a s
     frame: frameRef, layer: layerRef,
   }, async (a) => text(await rpc('reduceColors', a)), { destructiveHint: true });
 
+tool('gameboy_style', 'Convert a sprite to the Game Boy (Gen 1 / Gen 2) style: 4 shades, 40/48/56 px canvas by size class, black outline, interior lines and shade balance measured from real sprites. Source: an image file (path) or a frame of the open sprite. Result goes in as a new sprite by default (undo restores the old one). Returns a style report; follow it with a manual cleanup pass (see the gameboy-sprite-style skill).',
+  {
+    preset: z.enum(['gen1', 'gen2']).optional().describe('gen1: rougher, broken outlines, more dark. gen2 (default): solid outline, lighter, cleaner.'),
+    path: z.string().optional().describe('Image file to convert (PNG or JPEG). Omit to convert a frame of the open sprite.'),
+    frame: frameRef,
+    size: z.union([z.literal(40), z.literal(48), z.literal(56)]).optional().describe('Canvas size. Default picks by how big the creature is.'),
+    tone: z.enum(['lighter', 'auto', 'darker', 'darkest']).optional().describe('Overall darkness. darkest suits ghosts and dark-bodied creatures; lighter suits pale ones.'),
+    colors: z.union([z.literal('gray'), z.literal('auto'), z.tuple([z.string(), z.string()])]).optional()
+      .describe('"gray" (default, original Game Boy), "auto" (two Game Boy Color tints from the source), or [lightHex, darkHex].'),
+    mode: z.enum(['new', 'frames', 'layer']).optional().describe('new (default) replaces the sprite; frames inserts after into_frame; layer adds a layer.'),
+    into_frame: z.union([z.number().int(), z.string()]).optional(),
+    layer_name: z.string().optional(),
+  }, async (a) => text(await rpc('gbConvert', a)), { destructiveHint: true });
+
+tool('style_check', 'Score a sprite against the measured Gen 1 or Gen 2 style: colors, canvas, outline, shade balance, interior lines and noise, each with a target and plain advice. Use it after converting and after each manual fix.',
+  {
+    preset: z.enum(['gen1', 'gen2']).optional(),
+    path: z.string().optional().describe('Image file to check. Omit to check a frame of the open sprite.'),
+    frame: frameRef,
+  }, async (a) => text(await rpc('styleCheck', a)), { readOnlyHint: true });
+
 tool('open_editor', "Open the Pixel Forge editor in the user's default browser.", {}, async () => {
   await ensure();
   const [cmd, args] = process.platform === 'win32' ? ['cmd', ['/c', 'start', '', EDITOR_URL]]

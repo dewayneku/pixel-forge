@@ -7,7 +7,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-f7c948?style=for-the-badge"></a>
   <a href="https://nodejs.org"><img alt="Node 18+" src="https://img.shields.io/badge/node-18%2B-5fa04e?style=for-the-badge&logo=nodedotjs&logoColor=white"></a>
-  <a href="https://modelcontextprotocol.io"><img alt="MCP ready" src="https://img.shields.io/badge/MCP-21%20tools-8b5cf6?style=for-the-badge"></a>
+  <a href="https://modelcontextprotocol.io"><img alt="MCP ready" src="https://img.shields.io/badge/MCP-23%20tools-8b5cf6?style=for-the-badge"></a>
   <a href="https://claude.com/claude-code"><img alt="Works with Claude" src="https://img.shields.io/badge/works%20with-Claude-d97757?style=for-the-badge&logo=claude&logoColor=white"></a>
   <br>
   <img alt="No build step" src="https://img.shields.io/badge/build%20step-none-38bdf8?style=for-the-badge">
@@ -22,6 +22,7 @@
   <a href="#-draw-with-an-ai-agent"><b>AI agent</b></a> ·
   <a href="#-importing-images"><b>Import</b></a> ·
   <a href="#-exporting"><b>Export</b></a> ·
+  <a href="#-game-boy-style"><b>Game Boy style</b></a> ·
   <a href="#%EF%B8%8F-shortcuts"><b>Shortcuts</b></a> ·
   <a href="#-support"><b>Support</b></a>
 </p>
@@ -51,7 +52,7 @@ sheet or put a hat on a new layer, and watch the edits land on your screen as it
     </td>
     <td width="33%" valign="top">
       <h3>🤖 Collaborate</h3>
-      21 MCP tools let an AI agent see your sprite, read exact pixels, draw, animate and point
+      23 MCP tools let an AI agent see your sprite, read exact pixels, draw, animate and point
       at things on your screen, live.
     </td>
   </tr>
@@ -124,7 +125,7 @@ something. Undo is shared, so <kbd>Ctrl</kbd>+<kbd>Z</kbd> also undoes the agent
 When it leaves out a frame or layer, it uses the one you have selected.
 
 <details>
-<summary><b>🧰 All 21 tools the agent gets</b></summary>
+<summary><b>🧰 All 23 tools the agent gets</b></summary>
 <br>
 
 | Tool | What it does |
@@ -141,6 +142,8 @@ When it leaves out a frame or layer, it uses the one you have selected.
 | `get_activity` | What you (and the agent) changed recently |
 | `analyze_image` | See an image file with every sprite boxed and numbered |
 | `import_image` | Import a PNG/JPEG as a new sprite, frames or a layer; remove backgrounds; cut by grid or by detected sprites |
+| `gameboy_style` | Convert a sprite to the Game Boy (Gen 1 / Gen 2) style |
+| `style_check` | Score a sprite against the measured Gen 1 / Gen 2 style, with advice |
 | `file`, `open_editor` | Save/open projects, export a PNG frame, sprite sheet or looping animated GIF, open the editor |
 
 </details>
@@ -180,6 +183,28 @@ Pick a scale in the top bar, then:
 
 GIFs keep transparency (fully on or off) and up to 255 colors. GIF timing is in 10 ms steps, so
 frames shorter than 20 ms play slower in most viewers.
+
+## 🎮 Game Boy style
+
+Turn a modern monster sprite into the look of the original Game Boy games: 4 shades, a 40, 48 or
+56 px canvas, a bold black outline and heavy interior lines. Click **GB style** in the top bar,
+or ask your agent to use `gameboy_style`.
+
+- **Two presets**: `gen1` is rougher and moodier (broken outlines, more dark shading, more
+  texture); `gen2` is cleaner and lighter (an almost solid outline, bigger flat areas).
+- **Tone**: `lighter`, `darker` or `darkest` for creatures whose character the numbers can't
+  guess, like a ghost that should be mostly black.
+- **Colors**: the original 4 grays, or two Game Boy Color tints picked from the source.
+- **Measured, not guessed**: the targets come from measuring hundreds of real Game Boy-era
+  sprites (shade balance, outline coverage, interior lines, canvas use, noise).
+  `style_check` scores any sprite against them; each check passes in the range ~90% of real
+  sprites fall in.
+
+> [!IMPORTANT]
+> The converter does the mechanical part. Faces, eyes and clean spike tips still need a hand
+> pass — that's what the bundled Claude skill
+> ([`.claude/skills/gameboy-sprite-style`](.claude/skills/gameboy-sprite-style/SKILL.md)) walks
+> the agent through, checking its work with `style_check` as it goes.
 
 ## ⌨️ Shortcuts
 
@@ -229,6 +254,8 @@ flowchart LR
 - `server/png.js`, `server/gif.js`: PNG and animated GIF encoding
 - `web/`: the editor (plain JS, no build step)
 - `web/imagetools.js`: background removal, sprite detection and color cleanup (shared by editor and server)
+- `web/gbstyle.js`: the Game Boy style converter and scorer (shared by editor and server)
+- `.claude/skills/gameboy-sprite-style/`: the Claude skill for converting and hand-finishing
 - `mcp/index.js`: the MCP tools, forwarding to the app server
 - `scripts/`: end-to-end tests, plus the scripts that draw this README's banner and demo
 

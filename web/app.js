@@ -462,6 +462,23 @@ function renderPalette() {
   }
 }
 $('#pal-add').onclick = () => call('setPalette', { colors: [toHex(S.color)], mode: 'append' });
+$('#btn-gb').onclick = async () => {
+  const a = prompt(
+    'Convert the current frame to the Game Boy sprite style (replaces the sprite; undo brings it back).\n\n' +
+    'Type gen1 or gen2, optionally followed by a tone (lighter, darker, darkest) and "color" for Game Boy Color tints.\n' +
+    'Examples: gen2   ·   gen1 darker   ·   gen2 darkest color',
+    'gen2');
+  if (!a) return;
+  const w = a.toLowerCase().split(/\s+/);
+  const preset = w.includes('gen1') ? 'gen1' : 'gen2';
+  const tone = ['lighter', 'darker', 'darkest'].find((t) => w.includes(t)) || 'auto';
+  const colors = w.some((x) => x.startsWith('colo')) ? 'auto' : 'gray';
+  const r = await call('gbConvert', { preset, tone, colors, frame: S.frameId }).catch(() => null);
+  if (!r) return;
+  fitZoom();
+  const off = Object.values(r.style.metrics).filter((m) => m.ok === false).length;
+  toast(`${r.preset}: ${r.size}${off ? ` · ${off} style checks to touch up` : ' · all style checks pass'}`);
+};
 $('#pal-reduce').onclick = async () => {
   const a = prompt('Clean up the colors of the whole sprite.\n\nHow many colors to keep? (e.g. 16 or 24)\nOr type "palette" to snap every pixel to the current palette.\n\nUndo restores the original.', '24');
   if (!a) return;

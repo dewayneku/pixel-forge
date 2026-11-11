@@ -8,6 +8,7 @@ import { encodePng, decodePng, present } from './png.js';
 import { encodeGif } from './gif.js';
 import { shapePoints } from '../web/shapes.js';
 import { removeBackground, detectSprites, packBoxes, buildPalette, mapToPalette, countColors } from '../web/imagetools.js';
+import { convertToGB, styleReport, PRESETS } from '../web/gbstyle.js';
 import jpeg from 'jpeg-js';
 
 export class Changes {
@@ -853,3 +854,36 @@ ro('exportPng', (p, ctx) => {
   fs.writeFileSync(file, encodePng(img.data, img.width, img.height));
   return { image: file, frame: d.frameIndex(f.id) + 1 };
 });
+
+// ---------------------------------------------------------------- Game Boy style
+
+// The image to convert or check: an image file, or a frame of the open sprite.
+function sourceImage(p, ctx) {
+  if (p.path || p.png || p.rgba) return loadImage({ ...p, remove_background: false }, ctx).img;
+  const d = ctx.doc;
+  const f = d.resolveFrame(p.frame, ctx.defaults.frameId);
+  return { width: d.width, height: d.height, data: d.composite(f.id) };
+}
+
+mut('gbConvert', (p, ctx) => {
+  const preset = p.preset || 'gen2';
+  if (!PRESETS[preset]) throw new Error('preset must be gen1 or gen2.');
+  const colors = Array.isArray(p.colors) ? p.colors : p.colors === 'auto' ? 'auto' : 'gray';
+  const r = convertToGB(sourceImage(p, ctx), {
+    preset, size: p.size ? int(p.size, 'size') : undefined, tone: p.tone || 'auto', colors,
+  });
+  const res = methods.importImage({
+    rgba: Buffer.from(r.image.data.buffer, r.image.data.byteOffset, r.image.data.length).toString('base64'),
+    width: r.size, height: r.size,
+    mode: p.mode || 'new', frame: p.into_frame, layer: p.layer, duration: p.duration,
+    layer_name: p.layer_name || `${preset} style`,
+  }, ctx);
+  ctx.doc.palette = [...r.palette];
+  ctx.summary = `converted to ${PRESETS[preset].label} style (${r.size}x${r.size}, tone ${p.tone || 'auto'})`;
+  return {
+    size: `${r.size}x${r.size}`, preset: PRESETS[preset].label, tone: p.tone || 'auto', palette: r.palette,
+    placed: res.placed, style: styleReport(r.image, preset),
+  };
+});
+
+ro('styleCheck', (p, ctx) => styleReport(sourceImage(p, ctx), p.preset || 'gen2'));
