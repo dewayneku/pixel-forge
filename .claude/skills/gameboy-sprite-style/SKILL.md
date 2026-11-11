@@ -111,9 +111,25 @@ Learned the hard way on a 64 → 56 px conversion (Swampert); apply them up fron
 
 ## Animations
 
-Convert one frame, finish it by hand, then build the other frames from the finished one
-(row drops for breathing, rotations around a pivot for limbs). Converting every frame
-separately gives inconsistent sizes and shading.
+Convert one frame, finish it by hand, then build the other frames from the finished one.
+Converting every frame separately gives inconsistent sizes and shading.
+
+- **Breathing**: drop one body row (the one most similar to the row above it) so everything
+  above sinks 1 px while feet stay planted; drop a second row higher up on the peak frame for
+  follow-through.
+- **Big limbs and tails**: rotate around a pivot with inverse mapping (every new pixel copied
+  from the original part, never painting over the body). Keep it to about 8–18°, and shorten
+  the part slightly if the tip would leave the canvas.
+- **Small parts (pincers, ears, hands) must not rotate.** At 20° a 3–4 px pincer broke apart
+  (gaps in the outline, streaks, specks). *Shift* them instead: raise the part 1–2 px and stretch
+  the gap with the clean limb row **below** it (stretching the part's own edge row grows a black
+  blob). Open a pincer by sliding one prong's tip rows 1 px outward.
+- **Counter-motion reads well**: lifting a limb 1 px while the body sinks 1 px keeps it held in
+  place, like a guard pose.
+- **Timing**: hold the rest pose longest (~350–450 ms), pass through quickly (~110 ms), settle
+  at the peak (~300 ms).
+- **Check every frame**: still one connected piece, still the same 4 colors, then look at all
+  frames side by side on white at ~5×.
 
 ## Rights
 
