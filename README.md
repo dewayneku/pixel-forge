@@ -10,6 +10,8 @@
   <a href="https://modelcontextprotocol.io"><img alt="MCP ready" src="https://img.shields.io/badge/MCP-23%20tools-8b5cf6?style=for-the-badge"></a>
   <a href="https://claude.com/claude-code"><img alt="Works with Claude" src="https://img.shields.io/badge/works%20with-Claude-d97757?style=for-the-badge&logo=claude&logoColor=white"></a>
   <br>
+  <a href="https://github.com/dewayneku/pixel-forge/actions/workflows/test.yml"><img alt="Tests" src="https://img.shields.io/github/actions/workflow/status/dewayneku/pixel-forge/test.yml?branch=main&style=for-the-badge&label=tests&logo=githubactions&logoColor=white"></a>
+  <a href="https://github.com/dewayneku/pixel-forge/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/dewayneku/pixel-forge?style=for-the-badge&color=22c55e"></a>
   <img alt="No build step" src="https://img.shields.io/badge/build%20step-none-38bdf8?style=for-the-badge">
   <img alt="Runs locally" src="https://img.shields.io/badge/runs-100%25%20local-ec4899?style=for-the-badge">
   <a href="https://github.com/dewayneku/pixel-forge/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/dewayneku/pixel-forge?style=for-the-badge&logo=github&color=fbbf24"></a>
