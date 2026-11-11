@@ -1,0 +1,30 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+    env:
+      PIXEL_FORGE_PORT: 7790
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Start the app server
+        run: |
+          node server/app.js &
+          for i in $(seq 1 30); do curl -sf localhost:$PIXEL_FORGE_PORT/api/health && break; sleep 0.5; done
+      - name: End-to-end tests (drive the MCP server like an agent)
+        run: npm run test:e2e

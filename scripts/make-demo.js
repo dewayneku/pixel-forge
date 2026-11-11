@@ -1,6 +1,8 @@
 // Builds docs/demo.gif: an original bouncing slime, drawn with Pixel Forge's own shape
 // and GIF code. Usage: node scripts/make-demo.js
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ellipsePoints } from '../web/shapes.js';
 import { present } from '../server/png.js';
 import { encodeGif } from '../server/gif.js';
@@ -8,7 +10,7 @@ import { encodeGif } from '../server/gif.js';
 const W = 32, H = 32, SCALE = 6;
 const OUT = [20, 40, 34], BODY = [92, 196, 120], SHADE = [52, 150, 96], SHINE = [210, 255, 214], EYE = [20, 40, 34];
 
-function frame(w, h, lift, eyesClosed = false) {
+export function frame(w, h, lift, eyesClosed = false) {
   const img = new Uint8ClampedArray(W * H * 4);
   const put = (x, y, c) => { if (x >= 0 && y >= 0 && x < W && y < H) img.set([...c, 255], (y * W + x) * 4); };
   const cx = 16, bottom = 27 - lift;
@@ -28,12 +30,14 @@ function frame(w, h, lift, eyesClosed = false) {
   return img;
 }
 
-const poses = [
+export const poses = [
   [18, 13, 0, 220], [20, 11, 0, 90], [22, 9, 0, 120],   // settle, squash down
   [16, 15, 2, 70], [14, 17, 6, 70], [14, 16, 9, 140],   // stretch and jump
   [15, 15, 6, 70], [16, 14, 2, 70], [22, 9, 0, 110],    // fall and land
   [20, 11, 0, 90], [18, 13, 0, 900, true], [18, 13, 0, 120],   // settle, blink
 ];
+// Only build the GIF when run directly (other scripts import the slime frames).
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
 const frames = poses.map(([w, h, lift, delay, blink]) => ({
   data: present(frame(w, h, lift, blink), W, H, { scale: SCALE, background: [38, 38, 50, 255] }).data,
   delay,
@@ -42,3 +46,4 @@ const g = encodeGif(frames, W * SCALE, H * SCALE);
 fs.mkdirSync('docs', { recursive: true });
 fs.writeFileSync('docs/demo.gif', g.buffer);
 console.log(`docs/demo.gif: ${frames.length} frames, ${W * SCALE}x${H * SCALE}, ${(g.buffer.length / 1024).toFixed(1)} KB`);
+}

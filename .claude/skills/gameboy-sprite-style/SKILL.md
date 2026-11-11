@@ -76,6 +76,39 @@ The converter averages pixels; real sprites are drawn. Fix these by hand:
 - **Gen 1 vs Gen 2 feel.** Gen 1: rougher, more dark, more texture, broken outline. Gen 2:
   cleaner, lighter, bigger flat areas, solid outline.
 
+## Lessons from real conversions
+
+Learned the hard way on a 64 → 56 px conversion (Swampert); apply them up front.
+
+- **Eyes need about 3×3 to read.** A 2×2 black eye with a glint looks like skin noise. Use
+  three rows: brow, white iris + black pupil, lower lid.
+- **Expression lives in the brows.** Flat brows over open eyes read as *surprised*. For a fierce
+  look, slant the brow down toward the nose so it cuts into the eye and only a sliver of white
+  iris shows, with the pupil at the inner corner.
+- **Open mouths: shape and teeth.** A rectangle reads as a goofy grin. Make the top wide and
+  narrow the jaw to a curve; dark inside, light tongue. A wide open mouth with a tongue still
+  reads as laughing until you add **1–2 px white fangs** at the top corners.
+- **Flat light faces look boxy.** Shade the side away from the light (right) in the dark shade
+  and round the top corners into the surrounding dark shapes.
+- **Bright accents (orange fins, gills, flames) become white shapes with a black outline**: the
+  brightest thing on a dark-blue body, as the accent color is in the source. Give every accent
+  on the creature the *same* language so they read as a set.
+- **Accents as spikes, not blocks.** A solid white block reads as a glove. Draw long thin spikes
+  with deep (2 px) notches between them; 1 px serrations vanish at game size.
+- **Outline fins with 8-way neighbours** so the black line closes on every side.
+- **Separate a pale belly from pale limbs with a black line.** Shading the belly alone merged
+  it into same-colored arms. Keep the belly shadow to 1 px plus one dithered row.
+- **Heavy black blocks in feet or shadows become the dark shade** with a black outline; keep a
+  black line only where two forms meet.
+- **Highlights: continuous rims, not dots.** An automatic "every other pixel" sheen turned into
+  checker noise and also hit the mouth. Draw one continuous 1 px light rim on the lit edge of
+  big dark shapes (fins, crests), and keep rules out of the face.
+- **Judge at game size.** Zoomed 16× views mislead. Compare versions side by side on white at
+  about 5×; keep backups (v0, v1, …) so a bad pass is one copy away from undone.
+- **What "too smooth" means.** Lines and solid shapes don't raise `single_px`; real sprites have
+  deliberately placed lone pixels on muscles, scales and form turns. Add them by hand, sparingly,
+  where a form turns, never as random noise.
+
 ## Animations
 
 Convert one frame, finish it by hand, then build the other frames from the finished one

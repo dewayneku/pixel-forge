@@ -1,0 +1,33 @@
+name: Bug report
+description: Something in Pixel Forge doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Import a 64x64 PNG
+        2. Click GB style, type gen2
+        3. ...
+  - type: input
+    id: env
+    attributes:
+      label: Browser, OS and Node version
+      placeholder: Chrome 140, Windows 11, Node 22
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where?
+      options: [Editor, Import, Export, Game Boy style, MCP / AI agent, Other]
+  - type: markdown
+    attributes:
+      value: |
+        If you attach a sprite to show the problem, please only share art you have the rights to share.

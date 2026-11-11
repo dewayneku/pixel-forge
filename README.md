@@ -265,16 +265,9 @@ Set `PIXEL_FORGE_PORT` to use a port other than 7777.
 
 ## 🤝 Contributing
 
-Issues and pull requests are welcome! The code is plain JavaScript with no build step. The
-end-to-end scripts in `scripts/` drive the MCP server like an agent would. They **replace the
-open sprite**, so run them against a separate port (each port keeps its own autosave):
-
-```bash
-PIXEL_FORGE_PORT=7790 npm start    # terminal 1
-PIXEL_FORGE_PORT=7790 npm test     # terminal 2
-```
-
-On Windows PowerShell, set the port first with `$env:PIXEL_FORGE_PORT=7790`.
+Issues and pull requests are welcome! The code is plain JavaScript with no build step.
+`npm test` runs the fast unit tests; see [CONTRIBUTING.md](CONTRIBUTING.md) for the end-to-end
+tests and where things live.
 
 > [!NOTE]
 > Please don't commit sprites or sheets you don't have the rights to share. `projects/` and

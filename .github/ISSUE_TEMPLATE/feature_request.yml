@@ -1,0 +1,16 @@
+name: Feature idea
+description: Suggest something Pixel Forge should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to do?
+      description: Describe what you're trying to make, not just the button you want. That helps find the best fix.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Anything else?
+      description: Examples, mockups or how other tools handle it.
