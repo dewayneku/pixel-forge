@@ -1,32 +1,80 @@
-# Pixel Forge
+<p align="center">
+  <img src="docs/banner.gif" alt="Pixel Forge: an animated pixel-art banner with a bouncing slime" width="100%">
+</p>
 
-**A pixel-art sprite animator that runs in your browser — with an AI co-pilot that can draw alongside you, live.**
+<h3 align="center">A pixel-art sprite animator that runs in your browser —<br>with an AI co-pilot that draws alongside you, live.</h3>
 
-[![Support on Ko-fi](https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/T5Y42AGW58)
+<p align="center">
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-f7c948?style=for-the-badge"></a>
+  <a href="https://nodejs.org"><img alt="Node 18+" src="https://img.shields.io/badge/node-18%2B-5fa04e?style=for-the-badge&logo=nodedotjs&logoColor=white"></a>
+  <a href="https://modelcontextprotocol.io"><img alt="MCP ready" src="https://img.shields.io/badge/MCP-21%20tools-8b5cf6?style=for-the-badge"></a>
+  <a href="https://claude.com/claude-code"><img alt="Works with Claude" src="https://img.shields.io/badge/works%20with-Claude-d97757?style=for-the-badge&logo=claude&logoColor=white"></a>
+  <br>
+  <img alt="No build step" src="https://img.shields.io/badge/build%20step-none-38bdf8?style=for-the-badge">
+  <img alt="Runs locally" src="https://img.shields.io/badge/runs-100%25%20local-ec4899?style=for-the-badge">
+  <a href="https://github.com/dewayneku/pixel-forge/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/dewayneku/pixel-forge?style=for-the-badge&logo=github&color=fbbf24"></a>
+  <a href="https://ko-fi.com/T5Y42AGW58"><img alt="Support on Ko-fi" src="https://img.shields.io/badge/support-Ko--fi-ff5e5b?style=for-the-badge&logo=kofi&logoColor=white"></a>
+</p>
 
-![A green slime bouncing, made with Pixel Forge](docs/demo.gif)
+<p align="center">
+  <a href="#-quick-start"><b>Quick start</b></a> ·
+  <a href="#-features"><b>Features</b></a> ·
+  <a href="#-draw-with-an-ai-agent"><b>AI agent</b></a> ·
+  <a href="#-importing-images"><b>Import</b></a> ·
+  <a href="#-exporting"><b>Export</b></a> ·
+  <a href="#%EF%B8%8F-shortcuts"><b>Shortcuts</b></a> ·
+  <a href="#-support"><b>Support</b></a>
+</p>
+
+<p align="center">
+  <img src="docs/demo.gif" alt="A green slime squashing, jumping and blinking, animated in Pixel Forge" width="160">
+</p>
 
 Draw, animate and export sprites in a lightweight editor. Connect an AI agent like
 [Claude](https://claude.com/claude-code) through the built-in [MCP](https://modelcontextprotocol.io)
-server, and it sees the same canvas you do: ask it to add an idle animation, clean up a sprite
+server and it sees the same canvas you do: ask it to add an idle animation, clean up a sprite
 sheet or put a hat on a new layer, and watch the edits land on your screen as it makes them.
 
-## Features
+## ✨ Features
 
-- **Editor**: pencil, eraser, fill, eyedropper, line, rectangle and ellipse; layers with opacity;
-  palette; undo/redo; zoom and pan.
-- **Animation**: timeline with per-frame timing, onion skin, live playback.
-- **Import anything**: PNG, GIF, JPEG, WebP, BMP. Cut sprite sheets by grid *or* automatically
-  find every sprite on a messy sheet, remove solid backgrounds, and clean JPEG noise back to a
-  small palette.
-- **Export**: PNG frames, sprite sheets (with a JSON of frame positions and timings) and looping
-  animated GIFs.
-- **AI collaboration**: 21 MCP tools let an agent see your sprite as an image, read exact pixels,
-  draw, animate, import and export. Undo is shared, and the agent can point at things on your
-  canvas.
-- **No build step, no account, runs locally.** Your work autosaves.
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>🎨 Draw</h3>
+      Pencil, eraser, fill, eyedropper, line, rectangle and ellipse. Layers with opacity, a
+      palette, shared undo/redo, smooth zoom and pan.
+    </td>
+    <td width="33%" valign="top">
+      <h3>🎞️ Animate</h3>
+      Timeline with per-frame timing, onion skin and live playback on the canvas and in a
+      preview window.
+    </td>
+    <td width="33%" valign="top">
+      <h3>🤖 Collaborate</h3>
+      21 MCP tools let an AI agent see your sprite, read exact pixels, draw, animate and point
+      at things on your screen, live.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h3>📥 Import anything</h3>
+      PNG, GIF, JPEG, WebP, BMP. Cut sheets by grid or <b>auto-detect every sprite</b> on a
+      messy sheet, remove backgrounds, clean up JPEG noise.
+    </td>
+    <td valign="top">
+      <h3>📤 Export</h3>
+      PNG frames, sprite sheets with a JSON of frame positions and timings, and looping
+      <b>animated GIFs</b>.
+    </td>
+    <td valign="top">
+      <h3>⚡ Zero fuss</h3>
+      No build step, no account, runs on your machine. Your work autosaves and comes back when
+      you restart.
+    </td>
+  </tr>
+</table>
 
-## Quick start
+## 🚀 Quick start
 
 You need [Node.js](https://nodejs.org) 18 or newer.
 
@@ -37,45 +85,16 @@ npm install
 npm start
 ```
 
-Then open **http://localhost:7777**.
+Then open **http://localhost:7777** and start drawing.
 
-Your work autosaves to `data/autosave.forge.json` and comes back when the server restarts. Use
-**Save** to keep a project as a `.forge.json` file.
+> [!TIP]
+> Your work autosaves to `data/autosave.forge.json`. Use **Save** to keep a project as a
+> `.forge.json` file you can open again or share.
 
-## Importing images
-
-Click **Import** or drop an image on the window (PNG, GIF, JPEG, WebP or BMP; a dropped
-`.forge.json` opens as a project). The dialog previews exactly what you'll get:
-
-- **Remove background**: makes a solid background transparent. The color is detected from the
-  image border; raise **Tolerance** for noisy JPEGs. "Keep matching colors inside sprites" only
-  removes background that touches the edge, so white eyes and highlights survive.
-- **Cut into → Even grid**: fixed frame size, spacing and margin. Strips of square frames are
-  detected automatically.
-- **Cut into → Separate sprites**: finds every sprite on a messy sheet. Click sprites to pick
-  them in the order you want as frames (or import them all). Frames are sized to the largest
-  pick and sprites are lined up by their feet so animations don't jitter. Raise **Join gap** if
-  detached parts (a sword, an effect) come out as separate sprites.
-- **Clean up colors**: JPEGs and resized art smear pixel art into hundreds of near-identical
-  shades. This pulls the imported frames back to a small palette (24 colors by default; it's on
-  automatically for JPEGs), makes edges fully opaque or fully transparent, and removes stray
-  single pixels. The resulting colors become your palette. Or snap to your current palette.
-- **Import as** a new sprite, new frames after the current one, or a new layer.
-
-To clean up a sprite that's already in the editor, use **Reduce…** above the palette: type a
-number of colors, or "palette" to snap to the current one. Undo brings the original back.
-
-Claude can do the same: `analyze_image` shows a sheet with every sprite numbered, and
-`import_image` takes `remove_background`, `detect`, `pick: [numbers]` and `reduce_colors`.
-For sprites already in the editor there's `reduce_colors`. Claude's tools read
-PNG and JPEG files.
-
-Your work autosaves to `data/autosave.forge.json` and comes back when the server restarts.
-
-## Work with an AI agent
+## 🤖 Draw with an AI agent
 
 **Claude Code**: this repo includes a `.mcp.json`, so starting Claude Code in the `pixel-forge`
-folder offers the `pixel-forge` server — approve it. Or add it from anywhere:
+folder offers the `pixel-forge` server. Approve it, or add it from anywhere:
 
 ```bash
 claude mcp add pixel-forge -- node /path/to/pixel-forge/mcp/index.js
@@ -92,17 +111,21 @@ path to your copy:
 }
 ```
 
-Then ask for things like:
+Then just ask:
 
-- "Look at what I'm drawing and suggest shading."
-- "Add a 4-frame idle bob animation to this sprite."
-- "Put a hat on a new layer."
+> 💬 *"Look at what I'm drawing and suggest shading."*<br>
+> 💬 *"Add a 4-frame idle bob animation to this sprite."*<br>
+> 💬 *"Import this sprite sheet, pick the walk cycle and clean up the colors."*<br>
+> 💬 *"Put a hat on a new layer."*
 
-If the editor isn't running, the MCP server starts it automatically. Claude's edits show up
-instantly with a toast, an activity entry, and an orange box when it points at something.
-Undo is shared, so Ctrl+Z also undoes Claude's last change.
+If the editor isn't running, the MCP server starts it automatically. The agent's edits appear
+instantly with a pop-up, an entry in the activity feed, and an orange box when it points at
+something. Undo is shared, so <kbd>Ctrl</kbd>+<kbd>Z</kbd> also undoes the agent's last change.
+When it leaves out a frame or layer, it uses the one you have selected.
 
-### Tools Claude gets
+<details>
+<summary><b>🧰 All 21 tools the agent gets</b></summary>
+<br>
 
 | Tool | What it does |
 | --- | --- |
@@ -115,60 +138,108 @@ Undo is shared, so Ctrl+Z also undoes Claude's last change.
 | `reduce_colors` | Clean up colors: reduce to N colors or snap to the palette, remove stray pixels |
 | `set_palette`, `canvas`, `history` | Palette, new/resize canvas, undo/redo |
 | `annotate` | Highlight a region on your screen with a message |
-| `get_activity` | What you (and Claude) changed recently |
+| `get_activity` | What you (and the agent) changed recently |
 | `analyze_image` | See an image file with every sprite boxed and numbered |
 | `import_image` | Import a PNG/JPEG as a new sprite, frames or a layer; remove backgrounds; cut by grid or by detected sprites |
 | `file`, `open_editor` | Save/open projects, export a PNG frame, sprite sheet or looping animated GIF, open the editor |
 
-When Claude leaves out a frame or layer, it uses the one you have selected.
+</details>
 
-## Exporting
+## 📥 Importing images
 
-**Frame PNG**, **Sprite sheet** (PNG plus a JSON of frame positions and durations) and **GIF**
-(an animated GIF that loops forever, with each frame's own timing) are in the top bar; pick the
-scale first. GIFs keep transparency (fully on or off) and up to 255 colors; GIF timing is in
-10 ms steps, so frames shorter than 20 ms play slower in most viewers.
+Click **Import** or drop an image on the window (PNG, GIF, JPEG, WebP or BMP; a dropped
+`.forge.json` opens as a project). The dialog previews exactly what you'll get:
 
-## Editor shortcuts
+- 🧽 **Remove background**: makes a solid background transparent. The color is detected from
+  the image border; raise **Tolerance** for noisy JPEGs. "Keep matching colors inside sprites"
+  only removes background touching the edge, so white eyes and highlights survive.
+- 🔲 **Cut into → Even grid**: fixed frame size, spacing and margin. Strips of square frames
+  are detected automatically.
+- 🔍 **Cut into → Separate sprites**: finds every sprite on a messy sheet. Click sprites to pick
+  them in the order you want as frames, or import them all. Frames are sized to the largest
+  pick and sprites line up by their feet so animations don't jitter. Raise **Join gap** if
+  detached parts (a sword, an effect) come out as separate sprites.
+- 🎨 **Clean up colors**: JPEGs and resized art smear pixel art into hundreds of near-identical
+  shades. This pulls the frames back to a small palette (24 colors by default, on automatically
+  for JPEGs), makes edges fully opaque or transparent, and removes stray single pixels. The
+  colors become your palette, or snap to your current palette instead.
+- ➕ **Import as** a new sprite, new frames after the current one, or a new layer.
+
+To clean up a sprite that's already in the editor, use **Reduce…** above the palette: type a
+number of colors, or "palette" to snap to the current one. Undo brings the original back.
+
+## 📤 Exporting
+
+Pick a scale in the top bar, then:
+
+| Button | You get |
+| --- | --- |
+| **Frame PNG** | The current frame |
+| **Sprite sheet** | All frames in a PNG, plus a JSON of frame positions and durations |
+| **GIF** | An animated GIF that loops forever, with each frame's own timing |
+
+GIFs keep transparency (fully on or off) and up to 255 colors. GIF timing is in 10 ms steps, so
+frames shorter than 20 ms play slower in most viewers.
+
+## ⌨️ Shortcuts
+
+<details>
+<summary><b>Show all editor shortcuts</b></summary>
+<br>
 
 | Key | Action |
 | --- | --- |
-| B / E / G / I | Pencil / eraser / fill / eyedropper |
-| L / U / O | Line / rectangle / ellipse |
-| H or hold Space | Pan (middle mouse also pans) |
-| Right-click | Erase · Alt+click picks a color · Shift+fill replaces a color everywhere |
-| [ and ] | Brush size |
-| , and . (or ← →) | Previous / next frame |
-| Enter | Play / pause |
-| Ctrl+Z / Ctrl+Y | Undo / redo |
-| Ctrl+S | Save project file |
-| 0 | Fit to screen |
+| <kbd>B</kbd> <kbd>E</kbd> <kbd>G</kbd> <kbd>I</kbd> | Pencil / eraser / fill / eyedropper |
+| <kbd>L</kbd> <kbd>U</kbd> <kbd>O</kbd> | Line / rectangle / ellipse |
+| <kbd>H</kbd> or hold <kbd>Space</kbd> | Pan (middle mouse also pans) |
+| Right-click | Erase · <kbd>Alt</kbd>+click picks a color · <kbd>Shift</kbd>+fill replaces a color everywhere |
+| <kbd>[</kbd> <kbd>]</kbd> | Brush size |
+| <kbd>,</kbd> <kbd>.</kbd> (or <kbd>←</kbd> <kbd>→</kbd>) | Previous / next frame |
+| <kbd>Enter</kbd> | Play / pause |
+| <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd> | Undo / redo |
+| <kbd>Ctrl</kbd>+<kbd>S</kbd> | Save project file |
+| <kbd>0</kbd> | Fit to screen |
 | Mouse wheel | Zoom |
 
-## How it fits together
+</details>
 
+## 🧩 How it works
+
+```mermaid
+flowchart LR
+    B["🎨 Browser editor<br/>web/"] <-- WebSocket --> S["🗂️ App server<br/>server/app.js<br/>document · undo · autosave"]
+    M["🔌 MCP server<br/>mcp/index.js"] <-- WebSocket --> S
+    A["🤖 AI agent<br/>Claude, etc."] <-- stdio --> M
+    classDef editor fill:#ec4899,stroke:#9d174d,color:#fff
+    classDef server fill:#8b5cf6,stroke:#5b21b6,color:#fff
+    classDef mcp fill:#38bdf8,stroke:#0369a1,color:#fff
+    classDef agent fill:#d97757,stroke:#9a3412,color:#fff
+    class B editor
+    class S server
+    class M mcp
+    class A agent
 ```
-browser editor (web/)  ──WebSocket──┐
-                                    ├── app server (server/app.js): owns the document, undo, autosave
-MCP server (mcp/) ─────WebSocket────┘
-     ▲ stdio
-   Claude
-```
+
+<details>
+<summary><b>📁 Project layout</b></summary>
+<br>
 
 - `server/doc.js`: document model (layers, frames, cels as RGBA)
 - `server/methods.js`: every edit operation, shared by the editor and the MCP server
-- `server/png.js`, `server/gif.js`: PNG and animated GIF encoding for views and exports
+- `server/png.js`, `server/gif.js`: PNG and animated GIF encoding
 - `web/`: the editor (plain JS, no build step)
-- `mcp/index.js`: MCP tools that forward to the app server
 - `web/imagetools.js`: background removal, sprite detection and color cleanup (shared by editor and server)
-- `scripts/smoke-test.js`, `scripts/import-test.js`, `scripts/sheet-test.js`, `scripts/cleanup-test.js`: exercise the tools end to end
+- `mcp/index.js`: the MCP tools, forwarding to the app server
+- `scripts/`: end-to-end tests, plus the scripts that draw this README's banner and demo
 
 Set `PIXEL_FORGE_PORT` to use a port other than 7777.
 
-## Contributing
+</details>
 
-Issues and pull requests are welcome. The code is plain JavaScript with no build step. The
-end-to-end scripts in `scripts/` drive the MCP server like an agent would; they **replace the
+## 🤝 Contributing
+
+Issues and pull requests are welcome! The code is plain JavaScript with no build step. The
+end-to-end scripts in `scripts/` drive the MCP server like an agent would. They **replace the
 open sprite**, so run them against a separate port (each port keeps its own autosave):
 
 ```bash
@@ -178,15 +249,21 @@ PIXEL_FORGE_PORT=7790 npm test     # terminal 2
 
 On Windows PowerShell, set the port first with `$env:PIXEL_FORGE_PORT=7790`.
 
-Please don't commit sprites or sheets you don't have the rights to share — `projects/` and
-`data/` are git-ignored for your own work.
+> [!NOTE]
+> Please don't commit sprites or sheets you don't have the rights to share. `projects/` and
+> `data/` are git-ignored for your own work.
 
-## Support
+## 💖 Support
 
-Pixel Forge is free and open source. If it helps you and you'd like to chip in, you can
-[buy me a coffee on Ko-fi](https://ko-fi.com/T5Y42AGW58) ☕ — every bit helps keep it going.
-Starring the repo, sharing what you make with it, and reporting bugs help a lot too.
+Pixel Forge is free and open source. If it helps you and you'd like to chip in, you can buy me a
+coffee — every bit helps keep it going. ☕
 
-## License
+<p align="center">
+  <a href="https://ko-fi.com/T5Y42AGW58"><img alt="Buy me a coffee on Ko-fi" src="https://img.shields.io/badge/Buy%20me%20a%20coffee-Ko--fi-ff5e5b?style=for-the-badge&logo=kofi&logoColor=white"></a>
+</p>
+
+Starring the repo ⭐, sharing what you make with it, and reporting bugs help a lot too.
+
+## 📜 License
 
 [MIT](LICENSE) © dewayneku
