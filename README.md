@@ -36,6 +36,10 @@ Draw, animate and export sprites in a lightweight editor. Connect an AI agent li
 server and it sees the same canvas you do: ask it to add an idle animation, clean up a sprite
 sheet or put a hat on a new layer, and watch the edits land on your screen as it makes them.
 
+<p align="center">
+  <img src="docs/editor.png" alt="The Pixel Forge editor: tools and palette on the left, a 32x32 slime on the canvas, preview and layers on the right, and a 12-frame timeline" width="100%">
+</p>
+
 ## ✨ Features
 
 <table>
