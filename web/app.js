@@ -696,6 +696,25 @@ $('#btn-export-gif').onclick = async () => {
   download('animation.gif', new Blob([b64ToCel(r.gif)], { type: 'image/gif' }));
   toast(`GIF: ${r.frames} frames, ${r.width}×${r.height}, ${(r.bytes / 1024).toFixed(1)} KB${r.note ? ' · ' + r.note : ''}`);
 };
+$('#btn-export-gba').onclick = async () => {
+  const one = S.frames.length === 1;
+  const r = await call('renderGba', one ? { frame: S.frameId, layout: 'frame' } : { layout: 'column' });
+  const name = one ? 'sprite-gba' : 'sheet-gba';
+  download(name + '.png', pngBlob(r.png));
+  download(name + '.pal', new Blob([r.pal], { type: 'text/plain' }));
+  const added = r.new_colors ? ` · new colours in slots ${r.new_colors.map((c) => c.slot).join(', ')}` : '';
+  toast(`GBA: ${r.size}, ${r.frames} frame${r.frames > 1 ? 's' : ''}, palette ${r.palette_from}, slots ${r.slots_used.join(' ')}${added}${r.warnings ? ' · ' + r.warnings.join(' ') : ''}`, r.warnings ? 'error' : '');
+};
+$('#pal-load').onclick = () => $('#file-pal').click();
+$('#file-pal').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  try {
+    const r = /\.png$/i.test(f.name) ? await call('setPalette', { png: await blobToB64(f) }) : await call('setPalette', { pal: await f.text() });
+    toast(`Palette loaded: ${r.palette.length} slots from ${f.name}`);
+  } catch {}
+});
 $('#btn-undo').onclick = () => call('undo');
 $('#btn-redo').onclick = () => call('redo');
 
@@ -929,6 +948,7 @@ $('#import-dialog').addEventListener('close', async () => {
     mode,
     duration: num('#import-duration', 100),
     use_palette: $('#import-palette').checked,
+    gba: $('#import-gba').checked && imp.file.type === 'image/png',
     layer_name: imp.file.name.replace(/\.[^.]+$/, '').slice(0, 40),
     ...target(),
   };
@@ -988,6 +1008,7 @@ window.addEventListener('drop', (e) => {
   const f = e.dataTransfer.files[0];
   if (!f) return;
   if (/\.json$/i.test(f.name)) f.text().then((t) => call('loadProjectData', { data: JSON.parse(t) })).catch(() => {});
+  else if (/\.pal$/i.test(f.name)) f.text().then((t) => call('setPalette', { pal: t })).catch(() => {});
   else openImport(f);
 });
 

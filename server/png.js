@@ -40,6 +40,38 @@ export function encodePng(rgba, w, h) {
   ]);
 }
 
+// Indexed (palette) PNG: one palette index per pixel, bit depth 1, 2, 4 or 8. This is the format GBA
+// tools such as gbagfx read. No tRNS chunk: on the GBA, slot 0 is transparent by position.
+export function encodeIndexedPng(indices, w, h, palette, bitDepth = 4) {
+  if (![1, 2, 4, 8].includes(bitDepth)) throw new Error('Bit depth must be 1, 2, 4 or 8.');
+  if (palette.length > 1 << bitDepth) throw new Error(`${palette.length} palette entries do not fit in ${bitDepth} bits.`);
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0);
+  ihdr.writeUInt32BE(h, 4);
+  ihdr[8] = bitDepth;
+  ihdr[9] = 3; // palette
+  const stride = Math.ceil((w * bitDepth) / 8);
+  const raw = Buffer.alloc((stride + 1) * h);
+  const perByte = 8 / bitDepth;
+  for (let y = 0; y < h; y++) {
+    const row = y * (stride + 1) + 1;
+    for (let x = 0; x < w; x++) {
+      const v = indices[y * w + x];
+      if (v >= 1 << bitDepth) throw new Error(`Palette index ${v} does not fit in ${bitDepth} bits.`);
+      raw[row + Math.floor(x / perByte)] |= v << (8 - bitDepth * ((x % perByte) + 1));
+    }
+  }
+  const plte = Buffer.alloc(palette.length * 3);
+  palette.forEach((c, i) => { plte[i * 3] = c[0]; plte[i * 3 + 1] = c[1]; plte[i * 3 + 2] = c[2]; });
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk('IHDR', ihdr),
+    chunk('PLTE', plte),
+    chunk('IDAT', zlib.deflateSync(raw)),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
 // Decode a (non-interlaced) PNG of any standard color type and bit depth into RGBA.
 export function decodePng(buf) {
   const SIG = [137, 80, 78, 71, 13, 10, 26, 10];
@@ -97,6 +129,7 @@ export function decodePng(buf) {
   };
   const to8 = (v) => (depth === 16 ? v >> 8 : depth === 8 ? v : Math.round((v * 255) / max));
   const out = new Uint8ClampedArray(w * h * 4);
+  const indices = type === 3 ? new Uint8Array(w * h) : null;
   for (let y = 0; y < h; y++)
     for (let x = 0; x < w; x++) {
       const i = (y * w + x) * 4;
@@ -104,6 +137,7 @@ export function decodePng(buf) {
       let r, g, b, al = 255;
       if (type === 3) {
         const idx = sample(y, s);
+        indices[y * w + x] = idx;
         if (!palette || idx * 3 + 2 >= palette.length) throw new Error('PNG palette index out of range.');
         r = palette[idx * 3]; g = palette[idx * 3 + 1]; b = palette[idx * 3 + 2];
         if (trns && idx < trns.length) al = trns[idx];
@@ -121,7 +155,11 @@ export function decodePng(buf) {
       if (al === 0) r = g = b = 0;
       out[i] = r; out[i + 1] = g; out[i + 2] = b; out[i + 3] = al;
     }
-  return { width: w, height: h, data: out };
+  if (type !== 3) return { width: w, height: h, data: out };
+  // Indexed PNGs also give their palette in slot order and the index of every pixel.
+  const pal = [];
+  for (let i = 0; i + 2 < palette.length; i += 3) pal.push([palette[i], palette[i + 1], palette[i + 2]]);
+  return { width: w, height: h, data: out, palette: pal, indices };
 }
 
 // Nearest-neighbour upscale, optional background and pixel grid.

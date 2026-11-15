@@ -140,17 +140,17 @@ When it leaves out a frame or layer, it uses the one you have selected.
 | `view_frame`, `view_animation` | See a frame, or all frames as a sheet, as an image |
 | `get_pixels` / `draw_grid` | Read or write pixels as a character grid with a color legend |
 | `set_pixels`, `draw_shape`, `fill` | Pixels, lines, rectangles, ellipses, paint bucket |
-| `edit_cel` | Clear, shift, flip, copy from another frame, replace a color |
+| `edit_cel` | Clear, shift, flip, copy from another frame, replace a color (optionally in the palette too) |
 | `manage_frames`, `manage_layers` | Add, duplicate, delete, reorder, timing, visibility |
 | `reduce_colors` | Clean up colors: reduce to N colors or snap to the palette, remove stray pixels |
-| `set_palette`, `canvas`, `history` | Palette, new/resize canvas, undo/redo |
+| `set_palette`, `canvas`, `history` | Palette (or load one from a `.pal` / indexed PNG), new/resize canvas, undo/redo |
 | `annotate` | Highlight a region on your screen with a message |
 | `get_activity` | What you (and the agent) changed recently |
 | `analyze_image` | See an image file with every sprite boxed and numbered |
-| `import_image` | Import a PNG/JPEG as a new sprite, frames or a layer; remove backgrounds; cut by grid or by detected sprites |
+| `import_image` | Import a PNG/JPEG as a new sprite, frames or a layer; remove backgrounds; cut by grid or by detected sprites; GBA sprites keep their palette slots |
 | `gameboy_style` | Convert a sprite to the Game Boy (Gen 1 / Gen 2) style |
 | `style_check` | Score a sprite against the measured Gen 1 / Gen 2 style, with advice |
-| `file`, `open_editor` | Save/open projects, export a PNG frame, sprite sheet or looping animated GIF, open the editor |
+| `file`, `open_editor` | Save/open projects, export a PNG frame, sprite sheet, looping animated GIF or GBA indexed PNG + `.pal`, open the editor |
 
 </details>
 
@@ -172,6 +172,8 @@ Click **Import** or drop an image on the window (PNG, GIF, JPEG, WebP or BMP; a 
   shades. This pulls the frames back to a small palette (24 colors by default, on automatically
   for JPEGs), makes edges fully opaque or transparent, and removes stray single pixels. The
   colors become your palette, or snap to your current palette instead.
+- 🕹️ **GBA sprite**: for indexed PNGs from a GBA game: slot 0 becomes transparent and the
+  palette keeps its slot order, so the GBA export gives the same slots back.
 - ➕ **Import as** a new sprite, new frames after the current one, or a new layer.
 
 To clean up a sprite that's already in the editor, use **Reduce…** above the palette: type a
@@ -186,9 +188,30 @@ Pick a scale in the top bar, then:
 | **Frame PNG** | The current frame |
 | **Sprite sheet** | All frames in a PNG, plus a JSON of frame positions and durations |
 | **GIF** | An animated GIF that loops forever, with each frame's own timing |
+| **GBA** | An indexed PNG and a JASC `.pal` for GBA games (always 1×; several frames stack top to bottom) |
 
 GIFs keep transparency (fully on or off) and up to 255 colors. GIF timing is in 10 ms steps, so
 frames shorter than 20 ms play slower in most viewers.
+
+## 🕹️ GBA sprites
+
+The **GBA** export writes what pokeemerald, pokefirered and their expansions (and other GBA
+projects using `gbagfx`) read: an indexed 4bpp PNG plus a JASC `.pal`.
+
+- **16 slots, slot 0 transparent.** Transparent pixels go to slot 0; 15 colours are left for the art.
+- **15-bit colour.** Colours that differ only in the low 3 bits of a channel are one colour on the
+  GBA, so they share a slot; the export warns when two slots collapse into one.
+- **Slot order is kept.** The swatches are the palette when they can be: 16 swatches = slots 0–15,
+  up to 15 = slots 1–15 with a background in slot 0. Import a GBA sprite with **GBA sprite** ticked,
+  or **Load** a `.pal` above the palette, and the export puts every pixel back in its slot. That's
+  what shiny palettes, menu icons and NPCs that share a palette need.
+- **New colours** take a free slot (padding slots first) and are listed; the agent can pass
+  `lock: true` to refuse them instead.
+- **Agents** get it as `file` → `export_gba` with `layout` (`frame`, `column` for a 64×128
+  front pic or a 32×64 icon, `row` for an overworld sheet), `palette` (`auto`, `swatches`, `new` or
+  a `.pal` / indexed PNG to match, e.g. the front pic's palette for the back pic), `lock` and
+  `bit_depth` (`1` for 2-colour footprints, `8`). `edit_cel` → `replace_color` with
+  `update_palette: true` recolours a slot in place, the way a shiny palette is made.
 
 ## 🎮 Game Boy style
 
@@ -265,6 +288,7 @@ flowchart LR
 - `web/`: the editor (plain JS, no build step)
 - `web/imagetools.js`: background removal, sprite detection and color cleanup (shared by editor and server)
 - `web/gbstyle.js`: the Game Boy style converter and scorer (shared by editor and server)
+- `web/gba.js`: GBA palette slots, 15-bit colour and JASC `.pal` for the GBA export (shared by editor and server)
 - `.claude/skills/gameboy-sprite-style/`: the Claude skill for converting and hand-finishing
 - `mcp/index.js`: the MCP tools, forwarding to the app server
 - `scripts/`: end-to-end tests, plus the scripts that draw this README's banner and demo

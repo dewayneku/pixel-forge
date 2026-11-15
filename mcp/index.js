@@ -220,6 +220,7 @@ tool('edit_cel', 'Whole-layer edits on one frame: clear, shift (move pixels by d
     from_frame: z.union([z.number().int(), z.string()]).optional(),
     from_layer: z.union([z.number().int(), z.string()]).optional(),
     from_color: z.string().optional(), to_color: z.string().optional(),
+    update_palette: z.boolean().optional().describe('replace_color: also change that swatch in place, so it keeps its palette slot (use for GBA sprites, shiny palettes and shared palettes).'),
     frame: frameRef, layer: layerRef,
   }, async (a) => text(await rpc('editCel', a)));
 
@@ -244,10 +245,11 @@ tool('manage_layers', 'Add, duplicate, delete, reorder (to = position from botto
     opacity: z.number().min(0).max(1).optional(),
   }, async (a) => text(await rpc('layers', a)));
 
-tool('set_palette', 'Change the palette shown in the editor.',
+tool('set_palette', 'Change the palette shown in the editor, or load one in slot order from a JASC .pal file or an indexed PNG (for GBA work: the swatches then are the palette slots, slot 0 first).',
   {
     colors: z.array(z.string()).optional(),
     mode: z.enum(['replace', 'append', 'remove', 'reset']).optional().describe('Default replace.'),
+    file: z.string().optional().describe('Path to a .pal (JASC-PAL) or indexed .png to load the palette from, in slot order.'),
   }, async (a) => text(await rpc('setPalette', a)));
 
 tool('canvas', 'Start a new blank sprite (replaces the current one; undo can restore it) or resize the canvas, keeping pixels anchored.',
@@ -269,18 +271,22 @@ tool('annotate', "Highlight a rectangle on the user's canvas with a short messag
     message: z.string(), frame: frameRef,
   }, async (a) => text(await rpc('annotate', a)), { readOnlyHint: true });
 
-tool('file', 'Save or open a project (.forge.json), or export. export_frame: one PNG. export_sheet: all frames in a grid plus a .json with frame rects and durations. export_gif: an animated GIF that loops, using each frame\'s duration. Relative paths go in the projects/ folder.',
+tool('file', 'Save or open a project (.forge.json), or export. export_frame: one PNG. export_sheet: all frames in a grid plus a .json with frame rects and durations. export_gif: an animated GIF that loops, using each frame\'s duration. export_gba: an indexed PNG plus a JASC .pal for GBA games (pokeemerald, pokefirered and their expansions): slot 0 transparent, colours snapped to 15-bit, palette slot order kept; the result lists the slots used, any new colours and warnings. Relative paths go in the projects/ folder.',
   {
-    action: z.enum(['save', 'open', 'export_frame', 'export_sheet', 'export_gif']),
+    action: z.enum(['save', 'open', 'export_frame', 'export_sheet', 'export_gif', 'export_gba']),
     path: z.string(),
     frame: frameRef,
-    scale: z.number().int().min(1).max(32).optional().describe('Pixel scale for exports (default 1). GIFs are often easier to view at 4.'),
+    scale: z.number().int().min(1).max(32).optional().describe('Pixel scale for exports (default 1). GIFs are often easier to view at 4. Ignored by export_gba (always 1).'),
     columns: z.number().int().min(1).optional(),
-    background: z.string().optional().describe('export_gif: "transparent" (default) or a hex color.'),
+    background: z.string().optional().describe('export_gif: "transparent" (default) or a hex color. export_gba: the colour stored in slot 0 when the palette is built (default #98a0d0).'),
+    layout: z.enum(['frame', 'column', 'row']).optional().describe('export_gba: one frame (default for a single frame), all frames stacked top to bottom (default for several frames: a Pokémon front pic 64x128, an icon 32x64) or side by side (an overworld sheet).'),
+    palette: z.string().optional().describe('export_gba: "auto" (default: the swatches if they form a GBA palette, i.e. 16 swatches = slots 0-15 or up to 15 = slots 1-15, else built from the art), "swatches" (must), "new", or a path to a .pal / indexed PNG whose slot order to keep (e.g. the normal palette when exporting a back pic).'),
+    lock: z.boolean().optional().describe('export_gba: fail if the art uses a colour not in the palette, instead of putting it in a free slot. Use for shared palettes.'),
+    bit_depth: z.union([z.literal(4), z.literal(8), z.literal(1)]).optional().describe('export_gba: 4 (default, 16 slots), 8, or 1 for 2-colour footprints.'),
   }, async (a) => {
     if (a.action === 'save') return text(await rpc('saveProject', a));
     if (a.action === 'open') return text(await rpc('loadProject', a));
-    return text(await rpc('exportPng', { ...a, sheet: a.action === 'export_sheet', gif: a.action === 'export_gif' }));
+    return text(await rpc('exportPng', { ...a, sheet: a.action === 'export_sheet', gif: a.action === 'export_gif', gba: a.action === 'export_gba' }));
   });
 
 // Options shared by analyze_image and import_image for cleaning up and cutting sheets.
@@ -324,6 +330,7 @@ tool('import_image', 'Import a PNG or JPEG: as a new sprite, as new frames after
     skip_empty: z.boolean().optional().describe('Grid mode: skip fully transparent cells (default true).'),
     duration: z.number().int().optional().describe('Milliseconds per imported frame (default 100).'),
     use_palette: z.boolean().optional().describe("Replace the palette with the image's colors (if 64 or fewer)."),
+    gba: z.boolean().optional().describe('The PNG is a GBA sprite (indexed): pixels in slot 0 become transparent and the palette is set to its slots in order, slot 0 first, so export_gba keeps the same slots.'),
     reduce_colors: z.number().int().min(2).max(256).optional().describe('Clean up colors: reduce the imported frames to this many colors (24 is a good start for JPEG or resized art) and use them as the palette.'),
     snap_to_palette: z.boolean().optional().describe("Clean up colors by snapping to the sprite's current palette instead."),
     despeckle: z.boolean().optional().describe('With color cleanup, remove stray single pixels that touch nothing (default true).'),
