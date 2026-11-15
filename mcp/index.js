@@ -350,6 +350,7 @@ tool('gameboy_style', 'Convert a sprite to the Game Boy (Gen 1 / Gen 2) style: 4
     frame: frameRef,
     size: z.union([z.literal(40), z.literal(48), z.literal(56)]).optional().describe('Canvas size. Default picks by how big the creature is.'),
     tone: z.enum(['lighter', 'auto', 'darker', 'darkest']).optional().describe('Overall darkness. darkest suits ghosts and dark-bodied creatures; lighter suits pale ones.'),
+    method: z.enum(['majority', 'average']).optional().describe('majority (default): each pixel takes the shade covering most of its area, so eyes, stripes and teeth survive. average: blends colours first (older, smears small features).'),
     colors: z.union([z.literal('gray'), z.literal('auto'), z.tuple([z.string(), z.string()])]).optional()
       .describe('"gray" (default, original Game Boy), "auto" (two Game Boy Color tints from the source), or [lightHex, darkHex].'),
     mode: z.enum(['new', 'frames', 'layer']).optional().describe('new (default) replaces the sprite; frames inserts after into_frame; layer adds a layer.'),

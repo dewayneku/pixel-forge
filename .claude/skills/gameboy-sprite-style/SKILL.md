@@ -39,8 +39,11 @@ sprites. These are the targets `style_check` scores against.
    - `tone`: dark-bodied or ghostly creatures → `darker`/`darkest`; pale ones → `lighter`.
    - `size`: only override when the creature's bulk says otherwise.
    - `colors`: `gray` for Gen 1 look, `auto` or `[light, dark]` for Game Boy Color.
-3. **Convert**: `gameboy_style` (from a file with `path`, or the open sprite's frame). The
-   converter is made for *shrinking* detailed art (GBA 64 px, DS 80 px, or bigger). If the
+3. **Convert**: `gameboy_style` (from a file with `path`, or the open sprite's frame). It uses
+   a majority vote by default (each pixel takes the shade covering most of its area), so eyes,
+   stripes and teeth survive and flat areas stay flat; `method: average` is the older blend.
+   Raw results are still a bit flatter than real sprites (single_px ~4%), so plan to add
+   deliberate texture by hand. The converter is made for *shrinking* detailed art (GBA 64 px, DS 80 px, or bigger). If the
    source is already smaller than the target canvas, it gets enlarged and looks blocky: pass
    a smaller `size`, or redraw it by hand instead.
 4. **Read the report** it returns (same as `style_check`). Each check passes when the value is

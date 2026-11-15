@@ -871,6 +871,7 @@ mut('gbConvert', (p, ctx) => {
   const colors = Array.isArray(p.colors) ? p.colors : p.colors === 'auto' ? 'auto' : 'gray';
   const r = convertToGB(sourceImage(p, ctx), {
     preset, size: p.size ? int(p.size, 'size') : undefined, tone: p.tone || 'auto', colors,
+    method: p.method === 'average' ? 'average' : 'majority',
   });
   const res = methods.importImage({
     rgba: Buffer.from(r.image.data.buffer, r.image.data.byteOffset, r.image.data.length).toString('base64'),

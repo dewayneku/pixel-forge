@@ -110,10 +110,19 @@ export function convertToGB(src, opts = {}) {
   const lo = lums[0], hi = lums[lums.length - 1];
   const lineLum = Math.min(lums[Math.floor(lums.length * 0.12)], lo + (hi - lo) * 0.22);
 
+  // Majority mode (default): decide each SOURCE colour's shade first, then let every output pixel
+  // take the shade covering most of its area - a vote, never a blend - so small features (eyes,
+  // stripes, teeth) survive instead of being averaged away. Technique adapted from the hi-bit
+  // finish in agent-sprite-forge (MIT, (c) 2026 0x0funky): see THIRD_PARTY_NOTICES.md.
+  const majority = (opts.method || 'majority') === 'majority';
+  let classOf = null;
+  if (majority) classOf = classifySourceColours(S, SW, SH, share, lineLum, scale);
+
   // 4. Area-sample every destination pixel.
   const N = C * C;
   const cover = new Float32Array(N), line = new Float32Array(N);
   const col = new Float32Array(N * 3);
+  const votes = majority ? new Float32Array(N * 4) : null;
   for (let y = 0; y < dh; y++)
     for (let x = 0; x < dw; x++) {
       const sx0 = bx0 + x / scale, sx1 = bx0 + (x + 1) / scale, sy0 = by0 + y / scale, sy1 = by0 + (y + 1) / scale;
@@ -129,6 +138,7 @@ export function convertToGB(src, opts = {}) {
           op += w;
           r += S[i] * w; g += S[i + 1] * w; b += S[i + 2] * w;
           if (lum(S[i], S[i + 1], S[i + 2]) <= lineLum) ln += w;
+          if (votes) votes[((oy + y) * C + ox + x) * 4 + classOf.get((S[i] << 16) | (S[i + 1] << 8) | S[i + 2])] += w;
         }
       const k = (oy + y) * C + ox + x;
       cover[k] = area ? op / area : 0;
@@ -153,8 +163,20 @@ export function convertToGB(src, opts = {}) {
   const body = [];
   for (let k = 0; k < N; k++) if (inBody(k)) body.push(k);
   const edge = new Set(body.filter(isEdge));
+  if (majority) {
+    // each pixel takes the shade with the most area; lines win from a third of the area so 1 px
+    // source lines are not lost between two output pixels
+    for (const k of body) {
+      const v = votes.subarray(k * 4, k * 4 + 4);
+      const tot = v[0] + v[1] + v[2] + v[3];
+      if (tot && v[BLACK] / tot >= 0.34) { sh[k] = BLACK; continue; }
+      let best = 0;
+      for (let c = 1; c < 4; c++) if (v[c] > v[best]) best = c;
+      sh[k] = best;
+    }
+  }
   for (const k of edge) sh[k] = BLACK;
-  for (const k of body) if (line[k] >= 0.4) sh[k] = BLACK;
+  if (!majority) for (const k of body) if (line[k] >= 0.4) sh[k] = BLACK;
 
   // 6. More interior lines where neighbouring colors differ strongly (separates limbs and
   //    overlapping parts), drawn on the darker side, until the preset's inner-black share.
@@ -184,30 +206,71 @@ export function convertToGB(src, opts = {}) {
     }
   }
 
-  // 7. Shade everything else by brightness, in the preset's proportions.
-  let black = body.filter((k) => sh[k] === BLACK).length;
-  const rest = body.filter((k) => sh[k] !== BLACK).map((k) => [lum(...color(k)), k]).sort((a, b) => a[0] - b[0]);
-  const blackTarget = Math.round(share.black * body.length);
-  let i0 = 0;
-  while (black < blackTarget && i0 < rest.length * 0.85) { sh[rest[i0][1]] = BLACK; black++; i0++; }
-  const remain = rest.slice(i0);
-  const t = share.white + share.light + share.dark;
-  const nDark = Math.round(remain.length * (share.dark / t));
-  const nLight = Math.round(remain.length * (share.light / t));
-  remain.forEach(([, k], i) => { sh[k] = i < nDark ? DARK : i < nDark + nLight ? LIGHT : WHITE; });
+  // 7m. Majority mode: the outline paints over edge pixels (often shadow), so restore the shade
+  //     balance by growing existing shapes: pixels bordering a shade move into it, darkest
+  //     first, until the target share. Shadows grow as shapes, never as speckle.
+  if (majority) {
+    const grow = (from, to, target, darkestFirst) => {
+      let have = body.filter((k) => sh[k] === to).length;
+      for (let round = 0; round < 6 && have < target; round++) {
+        const front = body.filter((k) => sh[k] === from && !edge.has(k) && nb4(k).some((q) => sh[q] === to))
+          .map((k) => [lum(...color(k)), k]).sort((a, b) => darkestFirst ? a[0] - b[0] : b[0] - a[0]);
+        if (!front.length) break;
+        for (const [, k] of front.slice(0, Math.ceil(front.length / 2))) {   // half a ring per round
+          if (have >= target) break;
+          sh[k] = to; have++;
+        }
+      }
+    };
+    const n = body.length;
+    grow(LIGHT, DARK, Math.round(share.dark * n), true);      // missing shadow: light -> dark
+    const whites = body.filter((k) => sh[k] === WHITE).length;
+    if (whites > share.white * n * 1.15) {                     // too much white: white -> light
+      const excess = whites - Math.round(share.white * n);
+      const lightNow = body.filter((k) => sh[k] === LIGHT).length;
+      grow(WHITE, LIGHT, lightNow + excess, true);
+    }
+  }
 
-  // 8. Clean up lone pixels (keep black ones: eyes and line ends live there). One gentle
-  //    pass: real sprites keep 10-15% single-pixel texture.
+  // 7. Average mode: shade everything else by brightness, in the preset's proportions.
+  //    (Majority mode already decided shades per source colour.)
+  if (!majority) {
+    let black = body.filter((k) => sh[k] === BLACK).length;
+    const rest = body.filter((k) => sh[k] !== BLACK).map((k) => [lum(...color(k)), k]).sort((a, b) => a[0] - b[0]);
+    const blackTarget = Math.round(share.black * body.length);
+    let i0 = 0;
+    while (black < blackTarget && i0 < rest.length * 0.85) { sh[rest[i0][1]] = BLACK; black++; i0++; }
+    const remain = rest.slice(i0);
+    const t = share.white + share.light + share.dark;
+    const nDark = Math.round(remain.length * (share.dark / t));
+    const nLight = Math.round(remain.length * (share.light / t));
+    remain.forEach(([, k], i) => { sh[k] = i < nDark ? DARK : i < nDark + nLight ? LIGHT : WHITE; });
+  }
+
+  // 8. Clean up lone pixels. One gentle pass: real sprites keep 10-15% single-pixel texture.
+  //    Average mode never touches black (eyes, line ends). Majority mode only merges a lone pixel
+  //    into a *neighbouring* shade (one step away): contrasting ones - a pupil, a glint, a stripe
+  //    dash - are features and stay.
   for (let pass = 0; pass < 1; pass++)
     for (const k of body) {
-      if (sh[k] === BLACK) continue;
+      if (!majority && sh[k] === BLACK) continue;
+      if (majority && edge.has(k)) continue;
       const ns = nb4(k).filter(inBody);
       if (ns.length < 3 || ns.some((q) => sh[q] === sh[k])) continue;
-      const votes = [0, 0, 0, 0];
-      for (const q of ns) votes[sh[q]]++;
-      votes[BLACK] = 0;
-      const best = votes.indexOf(Math.max(...votes));
-      if (votes[best] >= 2) sh[k] = best;
+      const nv = [0, 0, 0, 0];
+      for (const q of ns) nv[sh[q]]++;
+      if (!majority) nv[BLACK] = 0;
+      const best = nv.indexOf(Math.max(...nv));
+      if (nv[best] < 2) continue;
+      if (majority) {
+        if (Math.abs(best - sh[k]) > 1) continue;
+        // judge contrast by the real source colours, not shade steps: a white glint on a light
+        // blue body is one shade apart but clearly a feature
+        const mean = [0, 0, 0];
+        for (const q of ns) { const cq = color(q); mean[0] += cq[0] / ns.length; mean[1] += cq[1] / ns.length; mean[2] += cq[2] / ns.length; }
+        if (cdist(color(k), mean) >= 40) continue;
+      }
+      sh[k] = best;
     }
 
   // 9. Lit edges (facing up/left) get a softer outline, down to the preset's black-edge share.
@@ -246,6 +309,47 @@ export function convertToGB(src, opts = {}) {
   const out = new Uint8ClampedArray(N * 4);
   for (let k = 0; k < N; k++) if (sh[k] !== NONE) out.set([...pal[sh[k]], 255], k * 4);
   return { image: { width: C, height: C, data: out }, size: C, preset: opts.preset || 'gen2', palette: pal.map(toHex), shades: sh };
+}
+
+// Give every SOURCE colour one shade (never split a colour across shades): the darkest band is
+// line black; the rest are ranked by brightness and filled darkest-first to the target shares.
+// Black from darkest colours only tops up what the outline and the lines will not already give.
+function classifySourceColours(S, SW, SH, share, lineLum, scale) {
+  const counts = new Map();
+  let body = 0, srcEdge = 0;
+  const opaque = (x, y) => x >= 0 && y >= 0 && x < SW && y < SH && S[(y * SW + x) * 4 + 3] >= 128;
+  for (let y = 0; y < SH; y++)
+    for (let x = 0; x < SW; x++) {
+      const i = (y * SW + x) * 4;
+      if (S[i + 3] < 128) continue;
+      body++;
+      if (!opaque(x + 1, y) || !opaque(x - 1, y) || !opaque(x, y + 1) || !opaque(x, y - 1)) srcEdge++;
+      const key = (S[i] << 16) | (S[i + 1] << 8) | S[i + 2];
+      const e = counts.get(key);
+      if (e) e.n++; else counts.set(key, { n: 1, l: lum(S[i], S[i + 1], S[i + 2]) });
+    }
+  const classOf = new Map();
+  let lineN = 0;
+  const rest = [];
+  for (const [key, e] of counts) {
+    if (e.l <= lineLum) { classOf.set(key, BLACK); lineN += e.n; } else rest.push([e.l, e.n, key]);
+  }
+  rest.sort((a, b) => a[0] - b[0]);
+  // the outline is about the source edge share, scaled up because perimeter shrinks less than area
+  const outlineShare = Math.min(0.35, (srcEdge / body) / Math.max(scale, 0.2));
+  const extraBlack = Math.max(0, share.black - lineN / body - outlineShare);
+  const restN = rest.reduce((s, r) => s + r[1], 0) || 1;
+  const t = share.white + share.light + share.dark;
+  const cuts = [extraBlack * body / restN];                                  // black, by fraction of rest
+  const left = 1 - Math.min(1, cuts[0]);
+  cuts.push(cuts[0] + left * share.dark / t, cuts[0] + left * (share.dark + share.light) / t);
+  let acc = 0;
+  for (const [, n, key] of rest) {
+    const mid = (acc + n / 2) / restN;
+    acc += n;
+    classOf.set(key, mid < cuts[0] ? BLACK : mid < cuts[1] ? DARK : mid < cuts[2] ? LIGHT : WHITE);
+  }
+  return classOf;
 }
 
 const hex = (h) => [1, 3, 5].map((i) => parseInt(String(h).replace(/^#?/, '#').slice(i, i + 2), 16));

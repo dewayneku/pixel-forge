@@ -85,4 +85,40 @@ for (const preset of Object.keys(PRESETS)) {
   });
 }
 
+test('majority conversion keeps a small contrasting feature (an eye)', () => {
+  // A pale body with a 2x2 black eye and a 1 px white glint in the middle of a light area.
+  const img = blank(64, 64);
+  for (const [x, y] of ellipsePoints(6, 4, 57, 61, true)) put(img, x, y, [200, 210, 120, 255]);
+  for (const [x, y] of ellipsePoints(6, 4, 57, 61, false)) put(img, x, y, [30, 30, 30, 255]);
+  for (const [x, y] of [[30, 24], [31, 24], [30, 25], [31, 25]]) put(img, x, y, [20, 20, 20, 255]);
+  const r = convertToGB(img, { preset: 'gen2', size: 56, method: 'majority' });
+  // the eye lands near (30, 24) * 55/58; look for black in a small window there
+  let black = 0;
+  for (let y = 19; y <= 25; y++) for (let x = 26; x <= 31; x++) {
+    const i = (y * 56 + x) * 4;
+    if (r.image.data[i + 3] && r.image.data[i] < 40 && r.image.data[i + 1] < 40) black++;
+  }
+  assert.ok(black >= 2, `eye lost (found ${black} black px near it)`);
+});
+
+test('majority conversion is faithful: keeps 1 px glints, invents no shading on a flat body', () => {
+  const img = blank(64, 64);
+  for (const [x, y] of ellipsePoints(6, 4, 57, 61, true)) put(img, x, y, [120, 130, 170, 255]);
+  for (const [x, y] of ellipsePoints(6, 4, 57, 61, false)) put(img, x, y, [30, 30, 30, 255]);
+  for (const [x, y] of [[20, 20], [33, 18], [44, 30], [26, 40], [38, 48]]) put(img, x, y, [255, 255, 255, 255]);
+  const r = convertToGB(img, { preset: 'gen2', size: 56, method: 'majority' });
+  const white = (x, y) => {
+    if (x < 0 || y < 0 || x > 55 || y > 55) return false;
+    const i = (y * 56 + x) * 4;
+    return r.image.data[i + 3] && r.image.data[i] > 240 && r.image.data[i + 2] > 240;
+  };
+  let all = 0, lone = 0;
+  for (let y = 0; y < 56; y++) for (let x = 0; x < 56; x++) if (white(x, y)) {
+    all++;
+    if (!white(x + 1, y) && !white(x - 1, y) && !white(x, y + 1) && !white(x, y - 1)) lone++;
+  }
+  assert.ok(lone >= 2, `glints lost (${lone} isolated white px)`);
+  assert.ok(all <= 6, `invented white shading on a flat body (${all} white px)`);
+});
+
 console.log(`\n${passed} passed${process.exitCode ? ', some failed' : ''}`);

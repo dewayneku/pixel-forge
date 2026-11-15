@@ -201,6 +201,10 @@ or ask your agent to use `gameboy_style`.
 - **Tone**: `lighter`, `darker` or `darkest` for creatures whose character the numbers can't
   guess, like a ghost that should be mostly black.
 - **Colors**: the original 4 grays, or two Game Boy Color tints picked from the source.
+- **Keeps the details**: every pixel takes the shade that covers most of its area instead of a
+  blend, so eyes, stripes and teeth survive the shrink, and a flat area stays flat (technique
+  adapted from [agent-sprite-forge](https://github.com/0x0funky/agent-sprite-forge); see
+  [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).
 - **Measured, not guessed**: the targets come from measuring hundreds of real Game Boy-era
   sprites (shade balance, outline coverage, interior lines, canvas use, noise).
   `style_check` scores any sprite against them; each check passes in the range ~90% of real
@@ -292,4 +296,4 @@ Starring the repo ⭐, sharing what you make with it, and reporting bugs help a 
 
 ## 📜 License
 
-[MIT](LICENSE) © dewayneku
+[MIT](LICENSE) © dewayneku · third-party credits in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
