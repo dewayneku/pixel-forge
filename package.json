@@ -26,7 +26,7 @@
     "start": "node server/app.js",
     "mcp": "node mcp/index.js",
     "test": "node scripts/unit-test.js",
-    "test:e2e": "node scripts/smoke-test.js && node scripts/import-test.js"
+    "test:e2e": "node scripts/smoke-test.js && node scripts/import-test.js && node scripts/gba-test.js"
   },
   "engines": {
     "node": ">=18"

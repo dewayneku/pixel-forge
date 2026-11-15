@@ -4,7 +4,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseColor, toHex, uid, checkSize, DEFAULT_PALETTE } from './doc.js';
-import { encodePng, decodePng, present } from './png.js';
+import { encodePng, encodeIndexedPng, decodePng, present } from './png.js';
+import { toIndexed, slotsFromSwatches, encodeJascPal, parseJascPal, rgbHex, GBA_BACKGROUND } from '../web/gba.js';
 import { encodeGif } from './gif.js';
 import { shapePoints } from '../web/shapes.js';
 import { removeBackground, detectSprites, packBoxes, buildPalette, mapToPalette, countColors } from '../web/imagetools.js';
@@ -327,6 +328,11 @@ mut('editCel', (p, ctx) => {
       out.set(src);
       for (let i = 0; i < out.length; i += 4)
         if (out[i] === from[0] && out[i + 1] === from[1] && out[i + 2] === from[2] && out[i + 3] === from[3]) out.set(to, i);
+      if (p.update_palette) {
+        // Recolour the swatch in place too, so its palette slot keeps its position (GBA palettes).
+        const at = d.palette.indexOf(toHex(from));
+        if (at >= 0) { d.palette[at] = toHex(to); ctx.changes.structure(); }
+      }
       break;
     }
     default:
@@ -443,6 +449,24 @@ mut('layers', (p, ctx) => {
 
 mut('setPalette', (p, ctx) => {
   const d = ctx.doc;
+  if (p.pal || p.png) {
+    // The editor sends the file's contents: JASC .pal text, or an indexed PNG as base64.
+    const slots = p.pal ? parseJascPal(p.pal) : decodePng(Buffer.from(p.png, 'base64')).palette;
+    if (!slots) throw new Error('That PNG is not indexed, so it has no palette slots to load.');
+    d.palette = slots.map(rgbHex);
+    ctx.changes.structure();
+    ctx.summary = `loaded a palette (${d.palette.length} slots)`;
+    return { palette: d.palette };
+  }
+  if (p.file) {
+    // A JASC .pal or an indexed PNG: its palette in slot order.
+    const file = path.isAbsolute(p.file) ? p.file : path.join(ctx.projectsDir, p.file);
+    if (!fs.existsSync(file)) throw new Error(`No file at ${file}`);
+    d.palette = readSlotPalette(file).map(rgbHex);
+    ctx.changes.structure();
+    ctx.summary = `loaded the palette from ${path.basename(file)} (${d.palette.length} colors)`;
+    return { palette: d.palette };
+  }
   const colors = (p.colors || []).map((c) => toHex(parseColor(c)));
   if (p.mode === 'append') d.palette.push(...colors.filter((c) => !d.palette.includes(c)));
   else if (p.mode === 'remove') d.palette = d.palette.filter((c) => !colors.includes(c));
@@ -600,7 +624,14 @@ function loadImage(p, ctx) {
     img = decodeImageFile(fs.readFileSync(file));
   } else throw new Error('Give an image path (or image data) to import.');
   if (img.width > 8192 || img.height > 8192) throw new Error('Image is too large (max 8192 px on a side).');
-  let background = null;
+  let background = null, slots = null;
+  if (p.gba) {
+    // A GBA sprite: slot 0 is transparent whatever colour it holds, and the slot order is kept.
+    if (!img.indices) throw new Error('gba import needs an indexed (palette) PNG, like the ones in a pokeemerald/pokefirered graphics folder.');
+    for (let i = 0; i < img.indices.length; i++) if (img.indices[i] === 0) img.data.fill(0, i * 4, i * 4 + 4);
+    slots = img.palette.map(rgbHex);
+    background = `slot 0 (${slots[0]})`;
+  }
   if (p.remove_background) {
     const r = removeBackground(img, {
       color: p.bg_color ? parseColor(p.bg_color) : null,
@@ -610,7 +641,7 @@ function loadImage(p, ctx) {
     img = r.image;
     background = r.color ? toHex([...r.color, 255]) : 'already transparent';
   }
-  return { img, background };
+  return { img, background, slots };
 }
 
 function findSprites(img, p) {
@@ -687,7 +718,7 @@ ro('analyzeImage', (p, ctx) => {
 
 mut('importImage', (p, ctx) => {
   const d = ctx.doc;
-  const { img, background } = loadImage(p, ctx);
+  const { img, background, slots } = loadImage(p, ctx);
   const cutResult = cutImage(img, p);
   const { fw, fh, how } = cutResult;
   let { slices } = cutResult;
@@ -741,6 +772,9 @@ mut('importImage', (p, ctx) => {
   if (cleanup?.palette) {
     palette = cleanup.palette; // a cleaned-up import always brings its palette along
     d.palette = palette;
+  } else if (slots) {
+    palette = slots; // GBA import: the palette in slot order, slot 0 first
+    d.palette = palette;
   } else if (p.use_palette) {
     palette = imageColors(slices);
     if (palette) d.palette = palette;
@@ -753,7 +787,7 @@ mut('importImage', (p, ctx) => {
     background_removed: background ?? undefined,
     placed: where,
     clipped_to_canvas: clipped || undefined,
-    palette_set: cleanup?.palette ? palette.length + ' colors' : p.use_palette ? (palette ? palette.length + ' colors' : 'skipped: more than 64 colors') : undefined,
+    palette_set: slots ? `${slots.length} slots in order (slot 0 = transparent)` : cleanup?.palette ? palette.length + ' colors' : p.use_palette ? (palette ? palette.length + ' colors' : 'skipped: more than 64 colors') : undefined,
     color_cleanup: cleanup ? { before: cleanup.colors_before, after: cleanup.colors_after, stray_pixels_removed: cleanup.stray_pixels_removed } : undefined,
     frames: frameInfo(d),
   };
@@ -831,8 +865,87 @@ ro('renderGif', (p, ctx) => {
   return { ...info, gif: g.buffer.toString('base64') };
 });
 
+// ---------------------------------------------------------------- GBA export
+
+function readSlotPalette(file) {
+  const buf = fs.readFileSync(file);
+  if (buf[0] === 0x89 && buf[1] === 0x50) {
+    const img = decodePng(buf);
+    if (!img.palette) throw new Error(`${path.basename(file)} is not an indexed PNG, so it has no slot order.`);
+    return img.palette;
+  }
+  return parseJascPal(buf.toString('latin1'));
+}
+
+// The sprite as GBA palette indices. layout: "frame" (one frame), "column" (all frames stacked,
+// e.g. a Pokemon front pic 64x128 or an icon 32x64) or "row" (side by side, e.g. an overworld sheet).
+// palette: "auto" (the swatches when they form a GBA palette, else built from the art), "swatches",
+// "new", or a path to a .pal / indexed PNG whose slot order must be kept.
+function gbaImage(d, p, ctx) {
+  const bitDepth = p.bit_depth ? int(p.bit_depth, 'bit_depth') : 4;
+  if (![1, 4, 8].includes(bitDepth)) throw new Error('bit_depth must be 4 (sprites), 8 or 1 (footprints).');
+  const layout = p.layout || (d.frames.length > 1 && (p.frame === undefined || p.frame === null) ? 'column' : 'frame');
+  let img, frames;
+  if (layout === 'frame') {
+    const f = d.resolveFrame(p.frame, ctx.defaults.frameId);
+    img = { width: d.width, height: d.height, data: d.composite(f.id) };
+    frames = 1;
+  } else if (layout === 'column' || layout === 'row') {
+    const s = sheet(d, { columns: layout === 'row' ? d.frames.length : 1, scale: 1, background: 'transparent' });
+    img = s.img;
+    frames = d.frames.length;
+  } else throw new Error('layout must be frame, column or row.');
+  if (img.width % 8 || img.height % 8) throw new Error(`The image is ${img.width}x${img.height}; GBA sprites are made of 8x8 tiles, so both sides must be multiples of 8.`);
+  const slots = 1 << bitDepth;
+  const bg = p.background ? parseColor(p.background) : null;
+  const background = bg && bg[3] ? bg.slice(0, 3) : GBA_BACKGROUND;
+  const mode = p.palette || 'auto';
+  let palette = null, source;
+  if (mode === 'auto' || mode === 'swatches') {
+    palette = slotsFromSwatches(d.palette, { slots, background });
+    if (!palette && mode === 'swatches') throw new Error(`The swatches can't be a ${bitDepth}bpp palette: use exactly ${slots} (slot 0 first)${slots > 2 ? ` or up to ${slots - 1} (slot 0 = background)` : ''}, all solid colours.`);
+    source = palette ? `swatches (${d.palette.length === slots ? 'slot 0 first' : 'slots 1-' + d.palette.length})` : 'new, built from the art';
+  } else if (mode === 'new') {
+    source = 'new, built from the art';
+  } else {
+    const file = path.isAbsolute(mode) ? mode : path.join(ctx.projectsDir, mode);
+    if (!fs.existsSync(file)) throw new Error(`No palette file at ${file}`);
+    palette = readSlotPalette(file);
+    source = path.basename(file);
+  }
+  const r = toIndexed(img, { palette, lock: !!p.lock, bitDepth, background });
+  return { img, r, bitDepth, layout, frames, source };
+}
+
+function gbaReport(g) {
+  return {
+    size: `${g.img.width}x${g.img.height}`, layout: g.layout, frames: g.frames, bit_depth: g.bitDepth,
+    palette_from: g.source, slots_used: g.r.used,
+    new_colors: g.r.added.length ? g.r.added : undefined,
+    palette: g.r.palette.map(rgbHex),
+    warnings: g.r.warnings.length ? g.r.warnings : undefined,
+  };
+}
+
+ro('renderGba', (p, ctx) => {
+  const g = gbaImage(ctx.doc, p, ctx);
+  return {
+    ...gbaReport(g),
+    png: encodeIndexedPng(g.r.indices, g.img.width, g.img.height, g.r.palette, g.bitDepth).toString('base64'),
+    pal: encodeJascPal(g.r.palette),
+  };
+});
+
 ro('exportPng', (p, ctx) => {
   const d = ctx.doc;
+  if (p.gba) {
+    const file = resolvePath(p.path, ctx, '.png');
+    const g = gbaImage(d, p, ctx);
+    fs.writeFileSync(file, encodeIndexedPng(g.r.indices, g.img.width, g.img.height, g.r.palette, g.bitDepth));
+    const pal = file.replace(/\.png$/i, '') + '.pal';
+    fs.writeFileSync(pal, encodeJascPal(g.r.palette));
+    return { image: file, palette_file: pal, ...gbaReport(g) };
+  }
   const scale = p.scale ? Math.max(1, Math.min(32, int(p.scale, 'scale'))) : 1;
   if (p.gif) {
     const file = resolvePath(p.path.replace(/\.png$/i, ''), ctx, '.gif');

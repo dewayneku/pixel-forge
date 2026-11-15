@@ -1,7 +1,8 @@
 // Fast checks that need no server: encoders, image tools and the Game Boy converter.
 // Usage: node scripts/unit-test.js
 import assert from 'node:assert/strict';
-import { encodePng, decodePng } from '../server/png.js';
+import { encodePng, encodeIndexedPng, decodePng } from '../server/png.js';
+import { toIndexed, slotsFromSwatches, encodeJascPal, parseJascPal, GBA_BACKGROUND } from '../web/gba.js';
 import { encodeGif } from '../server/gif.js';
 import { removeBackground, detectSprites, buildPalette, mapToPalette } from '../web/imagetools.js';
 import { convertToGB, styleReport, PRESETS } from '../web/gbstyle.js';
@@ -119,6 +120,76 @@ test('majority conversion is faithful: keeps 1 px glints, invents no shading on 
   }
   assert.ok(lone >= 2, `glints lost (${lone} isolated white px)`);
   assert.ok(all <= 6, `invented white shading on a flat body (${all} white px)`);
+});
+
+// ---------------------------------------------------------------- GBA export
+
+test('indexed PNG round trip keeps indices and palette (1, 4, 8 bpp)', () => {
+  for (const depth of [1, 4, 8]) {
+    const n = 1 << depth, w = 24, h = 8;
+    const idx = Uint8Array.from({ length: w * h }, (_, i) => (i * 7) % n);
+    const pal = Array.from({ length: n }, (_, i) => [i, 255 - i, (i * 3) & 255]);
+    const back = decodePng(encodeIndexedPng(idx, w, h, pal, depth));
+    assert.deepEqual([...back.indices], [...idx], `${depth}bpp indices`);
+    assert.deepEqual(back.palette, pal, `${depth}bpp palette`);
+  }
+});
+
+test('toIndexed: slot 0 transparent, 15-bit colours merge, new palette in first-seen order', () => {
+  const img = blank(8, 8);
+  put(img, 0, 0, [200, 10, 10, 255]);
+  put(img, 1, 0, [203, 13, 15, 255]); // same GBA colour as the one before
+  put(img, 2, 0, [10, 200, 10, 255]);
+  const r = toIndexed(img);
+  assert.deepEqual(r.used, [0, 1, 2]);
+  assert.equal(r.indices[0], 1);
+  assert.equal(r.indices[1], 1);
+  assert.equal(r.indices[2], 2);
+  assert.equal(r.indices[3], 0);
+  assert.deepEqual(r.palette[0], GBA_BACKGROUND);
+  assert.deepEqual(r.palette[1], [200, 8, 8]);
+  assert.equal(r.palette.length, 16);
+});
+
+test('toIndexed: a recolour keeps the slots of a given palette', () => {
+  // palette: slot 1 red, 2 green, 3 blue; the art turned green into yellow
+  const pal = [GBA_BACKGROUND, [248, 0, 0], [0, 248, 0], [0, 0, 248]];
+  const img = blank(8, 8);
+  put(img, 0, 0, [248, 0, 0, 255]);
+  put(img, 1, 0, [248, 248, 0, 255]);
+  put(img, 2, 0, [0, 0, 248, 255]);
+  const r = toIndexed(img, { palette: pal });
+  assert.equal(r.indices[0], 1);
+  assert.equal(r.indices[2], 3);
+  assert.ok(r.indices[1] !== 1 && r.indices[1] !== 3, 'yellow took a free slot');
+  assert.deepEqual(r.added.map((a) => a.color), ['#f8f800']);
+  assert.throws(() => toIndexed(img, { palette: pal, lock: true }), /not in the palette/);
+});
+
+test('toIndexed: too many colours and 1bpp transparency are explained', () => {
+  const img = blank(8, 8);
+  for (let i = 0; i < 16; i++) put(img, i % 8, i >> 3, [i * 16, 0, 0, 255]);
+  assert.throws(() => toIndexed(img), /holds 15 plus transparent/);
+  assert.throws(() => toIndexed(blank(8, 8), { bitDepth: 1 }), /no transparency/);
+  const fp = blank(8, 8, [255, 255, 255, 255]);
+  put(fp, 3, 3, [0, 0, 0, 255]);
+  assert.deepEqual(toIndexed(fp, { bitDepth: 1 }).used, [0, 1]);
+});
+
+test('swatches become a slot palette only when they can be one', () => {
+  const sixteen = Array.from({ length: 16 }, (_, i) => '#' + (i * 16).toString(16).padStart(2, '0') + '0000');
+  assert.equal(slotsFromSwatches(sixteen).length, 16);
+  assert.deepEqual(slotsFromSwatches(['#ff0000'])[0], GBA_BACKGROUND);
+  assert.equal(slotsFromSwatches([...sixteen, '#123456']), null);
+  assert.equal(slotsFromSwatches(['#ff0000', 'transparent']), null);
+});
+
+test('JASC .pal round trip', () => {
+  const pal = [[152, 160, 208], [255, 255, 255], [0, 0, 0]];
+  const text = encodeJascPal(pal);
+  assert.ok(text.startsWith('JASC-PAL\r\n0100\r\n3\r\n'));
+  assert.deepEqual(parseJascPal(text), pal);
+  assert.throws(() => parseJascPal('hello'), /JASC-PAL/);
 });
 
 console.log(`\n${passed} passed${process.exitCode ? ', some failed' : ''}`);

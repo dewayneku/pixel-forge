@@ -17,6 +17,7 @@
       <button id="btn-gb" title="Convert the current frame to the Game Boy (Gen 1 / Gen 2) sprite style">GB style</button>
       <input type="file" id="file-open" accept=".json,application/json" hidden>
       <input type="file" id="file-import" accept="image/png,image/gif,image/jpeg,image/webp,image/bmp" hidden>
+      <input type="file" id="file-pal" accept=".pal,image/png" hidden>
     </div>
     <div class="group">
       <button id="btn-undo" title="Undo (Ctrl+Z)">Undo</button>
@@ -30,6 +31,7 @@
       <button id="btn-export-frame">Frame PNG</button>
       <button id="btn-export-sheet">Sprite sheet</button>
       <button id="btn-export-gif" title="Animated GIF of all frames, looping, with each frame's timing">GIF</button>
+      <button id="btn-export-gba" title="Indexed PNG + .pal for GBA games: 16 slots, slot 0 transparent, 15-bit colour. Several frames are stacked top to bottom. Uses the swatches as the palette when they can be one (16 = slots 0-15, up to 15 = slots 1-15).">GBA</button>
     </div>
     <div class="spacer"></div>
     <div id="presence" class="pill offline"><span class="dot"></span><span id="presence-text">Connecting…</span></div>
@@ -54,7 +56,7 @@
         <label class="field" title="Alpha">α <input id="alpha" type="range" min="0" max="255" value="255"></label>
         <div id="color-hex" class="mono">#000000</div>
       </div>
-      <div class="section-title">Palette <span class="actions"><button id="pal-reduce" class="mini" title="Clean up the sprite's colors: reduce to a small palette or snap to this one">Reduce…</button><button id="pal-add" class="mini" title="Add current color">+</button></span></div>
+      <div class="section-title">Palette <span class="actions"><button id="pal-reduce" class="mini" title="Clean up the sprite's colors: reduce to a small palette or snap to this one">Reduce…</button><button id="pal-load" class="mini" title="Load a palette in slot order from a JASC .pal or an indexed PNG (GBA palettes)">Load</button><button id="pal-add" class="mini" title="Add current color">+</button></span></div>
       <div id="palette" title="Click to use · right-click to remove"></div>
     </aside>
 
@@ -170,6 +172,7 @@
       <div class="row">
         <label class="field">ms per frame <input id="import-duration" type="number" min="10" step="10" value="100"></label>
         <label class="field check"><input id="import-palette" type="checkbox"> Use the image's colors as the palette</label>
+        <label class="field check" title="For indexed PNGs from a GBA game: slot 0 becomes transparent and the palette keeps its slot order, so the GBA export gives the same slots back"><input id="import-gba" type="checkbox"> GBA sprite</label>
       </div>
       <div class="dialog-buttons">
         <button value="cancel" formnovalidate>Cancel</button>
