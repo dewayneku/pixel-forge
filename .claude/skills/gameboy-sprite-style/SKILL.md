@@ -80,8 +80,28 @@ The converter averages pixels; real sprites are drawn. Fix these by hand:
 
 Learned the hard way on a 64 → 56 px conversion (Swampert); apply them up front.
 
-- **Eyes need about 3×3 to read.** A 2×2 black eye with a glint looks like skin noise. Use
-  three rows: brow, white iris + black pupil, lower lid.
+- **Faces: copy the face language of a real Gen 1/2 relative.** If the user has real sprites
+  (dumps), find the creature's pre-evolution, or the closest real design with the same kind of
+  face, and print its face pixel by pixel (`get_pixels` / a char dump). Real artists solved that
+  face at this size; copy *how* it's drawn (eye size, brow shape, mouth), not the pixels.
+  (Electivire's face only worked after studying Gen 2 Electabuzz.)
+- **Benchmark against the relative too.** Run `style_check` on the real relative's sprite: its
+  numbers tell you whether a miss is the design's nature or a real gap (Electivire at 2% white
+  vs real Gen 2 Electabuzz at 11% meant "add highlights", not "it's just a yellow creature").
+- **Body forms, not boxes.** A dark chest drawn as a rectangle read as a TV screen; follow the
+  body's shape (a V-shaped shield narrowing to the hips) and break straight edges with fur tufts.
+- **Two kinds of face need different eyes.**
+  - *Masked or dark faces* (a black band, a dark head): each eye is **one white pixel with black
+    on both sides** (`#.#`) under a **thick slanted black brow band** that joins the eyes across
+    the nose. A big white eye in a black band reads as a robot visor.
+  - *Light faces*: eyes need about 3×3 to read (brow, white iris + black pupil, lower lid); a
+    2×2 eye with a glint looks like skin noise.
+- **Keep the face the body's main color**, not a white or light patch; the brow and the mouth
+  lines carry the expression.
+- **No extra marks near the eyes.** A forehead stripe or spot just above the brow reads as a
+  third eye or a second mouth; drop it, or move it well away.
+- **Teeth**: one row, 1 px tall, white with black gaps, between two thin black lips. Three rows
+  of black + white reads as a grille.
 - **Expression lives in the brows.** Flat brows over open eyes read as *surprised*. For a fierce
   look, slant the brow down toward the nose so it cuts into the eye and only a sliver of white
   iris shows, with the pupil at the inner corner.
